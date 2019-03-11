@@ -1,26 +1,3 @@
-void Gauss_Iter(float** &A, float* &b, float * &x, const int &num, const float &Tol)
-{
-    while()
-    {
-
-
-
-
-
-
-    }
-}
-
-void Jacobi_Iter(const float** &A, const float* &b, const float * &x, const int &num, const float &Tol)
-{
-    while()
-    {
-
-
-
-    }
-}
-
 void Chasing(float * &a, float * &b, float * &c, float * &f, float * &x, const int &num)
 {
     float* beta = new float [num - 1];
@@ -48,9 +25,6 @@ void Chasing(float * &a, float * &b, float * &c, float * &f, float * &x, const i
     delete[] beta;
     beta = nullptr;
 }
-
-void Gauss()
-{}
 
 
 
