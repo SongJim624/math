@@ -1,0 +1,4 @@
+void ConditionNumber(float** &A)
+{
+
+}
