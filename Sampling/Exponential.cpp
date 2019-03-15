@@ -1,3 +1,5 @@
+#include "Sampling.h"
+
 inline void rand_Exponential(const float &la = 1.0, float &rng)
 {
     rng -logf((float)rand() / (float)RAND_MAX) / la; 

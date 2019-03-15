@@ -1,5 +1,7 @@
 //Box - Muller Method
 //Single number
+#include "Sampling.h"
+
 inline void Normal(const float &mu, const float &sigma, float &rng)
 {
     rng = sqrt(-2.0 * logf(rand() / (float)RAND_MAX)) *

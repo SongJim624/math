@@ -1,6 +1,7 @@
 //Accrodint to the Simulation(Fifth edition)
 //Sheldon M.Ross
-include <vector>
+#include "Sampling.h"
+
 void Alias(float * &x, float * &mass, const size_t &num, const size_t &num_out, float * &rngs)
 {
 //This is suitable for the vector generation    
