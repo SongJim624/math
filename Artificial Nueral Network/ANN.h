@@ -1,8 +1,53 @@
 #include "math.h"
 
+class Node
+{
+private:    
+    Node * next;
+    size_t num;
+public:
+    Node()
+    {
+        next = nullptr;
+        num = 0;
+    }
+
+    void Add(Node * &node)
+    {
+        num += 1;
+        Node * inter = new Node [num];
+        for(size_t i = 0; i < num - 2; ++i)
+        {
+            inter[i] = next[i];
+        }
+        inter[num - 1] = node; 
+        delete[] next;
+        next = inter;
+    }
+    
+    ~Node()
+    {
+        if(num == 0)
+        {
+            return;
+        }
+
+        for(size_t i = 0; i < num; ++i)
+        {
+            delete next[i];
+        }
+        delete[] next;
+    }
+};
+
+
 class ANN
 {
 protected:
+//Network structure    
+
+
+
     inline float Sigmoid(const float &x)
     {
         return  1 / (1 - exp(-x));
