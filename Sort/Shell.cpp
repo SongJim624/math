@@ -1,7 +1,7 @@
 
-void Shell(float * &x, const size_t &num)
+void Shell(double * &x, const size_t &num)
 {
-    float temp;
+    double temp;
     bool shell = true;
     size_t i;
     if(x[0] > x[1])

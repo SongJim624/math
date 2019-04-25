@@ -13,12 +13,13 @@ void Chasing(float * &a, float * &b, float * &c, float * &f, float * &x, const i
         f[i] = (f[i] - a[i] * f[i - 1]) / (b[i] * a[i] * c[i - 1]);
     }
 
-    x[num - 1] = y[num - 1];
+    x[num - 1] = f[num - 1];
 
+    size_t i = num - 2;
     while(i < num)
     {
-        x[i] = y[i] - beta[i] * x[i + 1];
-        ++i;
+        x[i] = y[i] - c[i] * x[i + 1];
+        --i;
     }
 }
 

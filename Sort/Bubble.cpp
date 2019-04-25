@@ -1,8 +1,8 @@
 
-void Bubble(float * &a, size_t &num)
+void Bubble(double * &a, size_t &num)
 {
     bool swap = true;
-    float inter;
+    double inter;
     while(swap)
     {
         swap = false;

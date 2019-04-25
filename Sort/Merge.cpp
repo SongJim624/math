@@ -1,4 +1,4 @@
-void Merge(float * &x, const size_t & num)
+void Merge(double * &x, const size_t & num)
 {
     
 }

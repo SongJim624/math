@@ -1,6 +1,6 @@
 #include <random>
 
-void Quick(float * &x, size_t &begin, size_t &end)
+void Quick(double * &x, size_t &begin, size_t &end)
 {
     while(begin < end)
     {
@@ -10,13 +10,13 @@ void Quick(float * &x, size_t &begin, size_t &end)
     }
 }
 
-size_t Partition(float * &x, const size_t &begin, const size_t &end)
+size_t Partition(double * &x, const size_t &begin, const size_t &end)
 {
     int r = (size_t)rand() % end + begin;
 
-    float temp = x[r];
+    double temp = x[r];
 
-    float inter;
+    double inter;
     size_t i = begin - 1;
     for(size_t j = begin; j < end - 1; ++j)
     {
@@ -36,7 +36,7 @@ size_t Partition(float * &x, const size_t &begin, const size_t &end)
     return i;
 }
 
-void Quick(float * &x, const size_t &begin, const size_t &end)
+void Quick(double * &x, const size_t &begin, const size_t &end)
 {
 
 }
