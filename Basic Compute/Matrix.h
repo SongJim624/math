@@ -1,39 +1,37 @@
 #include "math.h"
+#include <stdexcept>
+#include <iostream>
+#include <string>
 
-template <class T>
-{
-private:
-    T* vector;
-    bool Construct;
-public:
-    Vector(const size_t & n)
-    : vector = new T[n], Construct(true)
-    {};
-
-
-    ~Vector()
-    {
-        if(Construct)
-        {
-            delete[] vector;
-        }
-    }
-}
-
-template <class T>
+template<typename T>
 class Matrix
 {
-private:
-    T *matrix;
+protected:
+    size_t r, c;
+    T * data;
 
+//Cosntructor
 public:
-    Matrix(const size_t &M,const size_t &N)
-    {
-        matrix = new T[M * N];
-    }
+    Matrix();
+    Matrix(const size_t &r, const size_t &c);
+    Matrix(const Matrix<T>& matrix);
 
-    T& operator [][](const size_t &i, const size_t &j)
-    {
-        return matrix[i * M + j - 1];
-    }
+//Destructor
+public:
+    ~Matrix();
+
+//Fucntion
+public:    
+    void size(int &r, int& c);
+    void transposition();
+
+//Operation
+public:
+    Matrix<T> operator + (const Matrix<T> &matrix);
+    Matrix<T> operator - (const Matrix<T> &matrix);
+    Matrix<T> operator * (const Matrix<T> &matrix);
+    Matrix<T> operator / (const Matrix<T> &matrix);
+
+    T operator () (const size_t &index) const;
+    T operator () (const size_t &r, const size_t&c) const; 
 };
