@@ -1,199 +1,228 @@
 #include "Matrix.h"
 
 //Constructor
-template<typename T>
-Matrix<T>::Matrix() : r(0), c(0), data(nullptr)
+Matrix::Matrix() : r(0), c(0), data(nullptr)
 {}
 
-template<typename T>
-Matrix<T>::Matrix(const size_t &r, const size_t &c) 
-: r(r), c(c)
-{
-    data = new T[r * c];
-}
+Matrix::Matrix(const size_t &num)
+: r(num), c(1), data(new double [num])
+{}
 
-template<typename T>
-Matrix<T>::Matrix(const Matrix<T> &matrix)
+Matrix::Matrix(const size_t &r, const size_t &c) 
+: r(r), c(c), data(new double[r * c])
+{}
+
+Matrix::Matrix(const Matrix &matrix)
+: r(matrix.r), c(matrix.c), data(new double[r * c])
 {
-    r = matrix->r;
-    c = matrix->c;
-    data = new T[r * c];
     for(size_t i = 0; i < r * c; ++i)
     {
-        data[i] = matrix->data[i];
+        data[i] = matrix.data[i];
+    }
+}
+
+Matrix::Matrix(const double* data, const size_t &r, const size_t&c)
+:r(r), c(c), data(new  double[r * c])
+{
+    for(size_t i = 0; i < r * c;++i)
+    {
+        this->data[i] = data[i];
     }
 }
 
 //Destructor
-template<typename T>
-Matrix<T>::~Matrix()
+Matrix::~Matrix()
 {
     if(!data)
     {
-        delete data;
+        delete[] data;
         data = nullptr;
     }
 }
 
 //function
+void Matrix::Transform(Type t)
+{
+    if(type == t)
+    {
+        return;
+    }
 
+    double * inter = new double[num];
+    switch(type)
+    {
+    case Row:
+    {        
+        for(size_t i = 0; i < num; ++i)
+        {
+            inter[(i % c) * r + (i / c)] = data[i];
+        }
 
-//operation
-template<typename T>
-void Matrix<T>::size(int&r, int &c)
+        break;
+    }
+    case Column:
+    {
+        for(size_t i = 0; i < num; ++i)
+        {
+            inter[(i % r) * c + (i / r)] = data[i];
+        }
+
+        break;
+    }
+    }
+
+    delete[] data;
+    data =  inter;
+    type = t;
+    return;
+}
+
+void Matrix::size(size_t&r, size_t &c)
 {
     r = this->r;
-    c = this-c;
+    c = this->c;
     return;
 }
 
-template<typename T>
-Matrix<T> Matrix<T>::operator + (const Matrix<T> &matrix)
+void Matrix::append(const Matrix& matrix)
 {
-    try
+    if(r != matrix.r)
     {
-        if(this->r != matrix->r)
-        {
-            throw "the row of the two matrices are not equal!\n";
-        }
-
-        if(this->c != matrix->c)
-        {
-            throw "the row of the two matrices are not equal!\n";
-        }
-
-        Matrix<T> inter(this->r, this->c);
-
-        for(size_t i = 0; i < r * c; ++i)
-        {
-            inter->data[i] = data[i] + matrix->data[i];
-        }
-
-        return inter;
-    }
-    catch(const std::exception & e)
-    {
-        std::cerr << e.what() << '\n';
-    }
-    catch(const char* msg)
-    {
-        std::cerr << msg << std::endl;
+        throw "The rows of the two matrices do not equal!\n";
     }
     
-    return;
-}
-
-template<typename T>
-Matrix<T> Matrix<T>::operator - (const Matrix<T> &matrix)
-{
-    try
+    size_t c_temp = c + matrix.c;
+    double* temp = new double[r * c_temp];
+    
+    size_t i = 0;
+    for(; i < r * c; ++i)
     {
-        if(this->r != matrix->r)
-        {
-            throw "the row of the two matrices are not equal!\n";
-        }
-
-        if(this->c != matrix->c)
-        {
-            throw "the row of the two matrices are not equal!\n";
-        }
-
-        Matrix<T> inter(this->r, this->c);
-
-        for(size_t i = 0; i < r * c; ++i)
-        {
-            inter->data[i] = data[i] - matrix->data[i];
-        }
-
-        return inter;
-    }
-    catch(const std::exception & e)
-    {
-        std::cerr << e.what() << '\n';
-    }
-    catch(const char* msg)
-    {
-        std::cerr << msg << std::endl;
+        temp[i] = data[i];
     }
     
-    return;
+    size_t j = i;
+    for(;i < r * c_temp; ++i)
+    {
+        temp[i] = matrix.data[i - j];
+    }
+    
+    c = c_temp;
+    delete[] data;
+    data = temp;
 }
 
-template<typename T>
-Matrix<T> Matrix<T>::operator * (const Matrix<T> &matrix)
+void Matrix::trans()
 {
-    try
+    double* inter = new double[r * c];
+    
+    for(size_t i = 0; i < r * c; ++i)
     {
-        if(this->c != matrix->r)
-        {
-            throw "the column of the former matrix does not equal the row of the later one!\n";
-        }
+        inter[i] = data[(i % c) * r + (i / c)];
+    }
+    
+    delete[] data;
+    data = inter;
 
-        Matrix<T> inter(this->c, matrix->r);
+    size_t in = c;
+    c = r;
+    r = in;
+}
 
-        for(size_t i = 0; i < r * matrix->c; ++i)
-        {
-            int row = i % r;
-            int col = i / r;
+//Operation
+Matrix Matrix::operator + (Matrix &matrix)
+{
+    if(this->r != matrix.r)
+    {
+        throw "the row of the two matrices are not equal!\n";
+    }
+
+    if(this->c != matrix.c)
+    {
+        throw "the row of the two matrices are not equal!\n";
+    }
+
+    Matrix inter(this->r, this->c);
+
+    for(size_t i = 0; i < r * c; ++i)
+    {
+        inter.data[i] = data[i] + matrix.data[i];
+    }
+
+    return inter;
+}
+
+
+Matrix Matrix::operator - (Matrix &matrix)
+{
+    if(this->r != matrix.r)
+    {
+        throw "the row of the two matrices are not equal!\n";
+    }
+
+    if(this->c != matrix.c)
+    {
+        throw "the row of the two matrices are not equal!\n";
+    }
+
+    Matrix inter(this->r, this->c);
+
+    for(size_t i = 0; i < r * c; ++i)
+    {
+        inter.data[i] = data[i] - matrix.data[i];
+    }
+
+    return inter;
+}
+
+
+Matrix Matrix::operator * (Matrix &matrix)
+{
+    if(this->c != matrix.r)
+    {
+        throw "the column of the former matrix does not equal the row of the later one!\n";
+    }
+
+    Matrix inter(this->c, matrix.r);
+    this->Transform(Row);
+    matrix.Transform(Column);
+
+
+    for(size_t i = 0; i < r * matrix.c; ++i)
+    {
+        unsigned long row = i % r;
+        unsigned long col = i / r;
             
-            for(size_t j = 0; j < matrix->c; ++j)
-            {
-                inter[i] += data[r * j + row] * matrix->data[col * c + j];
-            }
+        for(size_t j = 0; j < matrix.c; ++j)
+        {
+            inter.data[i] += data[r * j + row] * matrix.data[col * c + j];
         }
+    }
 
-        return inter;
-    }
-    catch(const std::exception & e)
-    {
-        std::cerr << e.what() << '\n';
-    }
-    catch(const char* msg)
-    {
-        std::cerr << msg << std::endl;
-    }
-    
-    return;
+    return inter;
 }
 
-template<typename T>
-T Matrix<T>::operator () (const size_t &index) const
+double& Matrix::operator () (const size_t &index)
 {
-    try
+    if(index > r * c | index < 1)
     {
-        if(index > r * c | index < 1)
-        {
-            throw "The index is out of range !\n";
-        }
+        throw "The index is out of range !\n";
+    }
 
-        return data[index - 1];
-    }
-    catch(const char * msg)
-    {
-        std::cerr << msg << std::endl;
-    }
+    return data[index - 1];
 }
 
-template<typename T>
-T Matrix<T>::operator () (const size_t &r, const size_t &c) const
+
+double& Matrix::operator () (const size_t &r, const size_t &c)
 {
-    try
+    if(r > this->r | r < 1)
     {
-        if(r > this->r | r < 1)
-        {
-            throw "The row is out of range !\n";
-        }
-
-        if(c > this->c | c < 1)
-        {
-            throw "The column is out of range !\n";
-        }
-
-        return data[this->r * (c - 1) + r];
+        throw "The row is out of range !\n";
     }
-    catch(const char * msg)
+
+    if(c > this->c | c < 1)
     {
-        std::cerr << msg << std::endl;
+        throw "The column is out of range !\n";
     }
+
+    return data[this->r * (c - 1) + r];
 }
-
