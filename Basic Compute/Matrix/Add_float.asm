@@ -5,38 +5,41 @@
 ;AVX is used, 8 single-float numbers are pocessed.
     .code
 Add_float proc
-
     mov rax, r9;
-    div rax, 8;
-
+    SHR rax, 03h;
+	
     jz sub_loop;
 main_loop:
-    vmovups ymm0, rax;
-    vaddps ymm1, ymm0, rdx;
-    vmovuos r8, ymm1;
+    vmovups ymm0, [rcx];
+    vaddps ymm1, ymm0, [rdx];
+    vmovups [r8], ymm1;
 
-    and rcx, 20h;
-    and rdx, 20h;
-    and r8, 20h;
+    add rcx, 20h;
+    add rdx, 20h;
+    add r8, 20h;
 
     sub r9, 8;
     dec rax;  
-control:
     jnz main_loop;
-    cmp r9, 0;    
-    jnz done; 
+
+control:
+    add r9, 0;    
+    jz done; 
+
 sub_loop:
-    mov xmm0, rcx;
-    add xmm0, rdx;
-    mov r8, xmm0; 
 
-    and rcx, 4h;
-    and rdx, 4h;
-    and r8, 4h;
+	vmovss xmm0,dword ptr[rcx];
+    vaddss xmm1, xmm0, dword ptr[rdx];
+    vmovss dword ptr[r8], xmm1; 
 
-    dec r9;
-    jnz sub_loop;
+	dec r9;
+	jz done
+
+	add rcx, 4h;
+    add rdx, 4h;
+    add r8, 4h;
+	jmp sub_loop;
 done:
-    .EXIT
+	ret
 Add_float endp
 end
