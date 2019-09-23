@@ -4,7 +4,7 @@
 ;Add_float(rcx, rdx, r8, r9)
 ;AVX is used, 8 single-float numbers are pocessed.
     .code
-Add_float proc
+add_float proc
     mov rax, r9;
     SHR rax, 03h;
 	
@@ -41,5 +41,5 @@ sub_loop:
 	jmp sub_loop;
 done:
 	ret
-Add_float endp
+add_float endp
 end

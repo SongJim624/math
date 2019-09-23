@@ -1,18 +1,15 @@
-;This function is as this form in C++
-;Add_float(float* a, float* b, float* c, long num)
-;The respective register is like
-;Add_float(rcx, rdx, r8, r9)
-;AVX is used, 8 single-float numbers are pocessed.
     .code
-sub_float proc
+dot_float proc
     mov rax, r9;
     SHR rax, 03h;
-	
+	vmovss ymm2, 0;
+
     jz sub_loop;
 main_loop:
+
     vmovups ymm0, [rcx];
-    vsubps ymm1, ymm0, [rdx];
-    vmovups [r8], ymm1;
+    vdpps ymm1, ymm0, [rdx];
+    vaddss ymm2, ymm1;
 
     add rcx, 20h;
     add rdx, 20h;
@@ -29,8 +26,8 @@ control:
 sub_loop:
 
 	vmovss xmm0,dword ptr[rcx];
-    vsubss xmm1, xmm0, dword ptr[rdx];
-    vmovss dword ptr[r8], xmm1; 
+    vmulss xmm1, xmm0, dword ptr[rdx];
+    vaddss xmm2, xmm1;
 
 	dec r9;
 	jz done
@@ -40,6 +37,7 @@ sub_loop:
     add r8, 4h;
 	jmp sub_loop;
 done:
+    mov rax, xmm2;
 	ret
-sub_float endp
+dot_float endp
 end
