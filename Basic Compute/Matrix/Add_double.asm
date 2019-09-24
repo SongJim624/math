@@ -5,15 +5,14 @@
 ;AVX is used, 4 single-float numbers are pocessed.
     .code
 add_double proc
-
     mov rax, r9;
     SHR rax, 02h;
 	
     jz sub_loop;
 main_loop:
     vmovupd ymm0, [rcx];
-    vaddpd ymm1, ymm0, [rdx];
-    vmovupd [r8], ymm1;
+    vaddpd ymm0, ymm0, [rdx];
+    vmovupd [r8], ymm0;
 
     add rcx, 20h;
     add rdx, 20h;
@@ -29,8 +28,8 @@ control:
 sub_loop:
 
 	vmovsd xmm0,qword ptr[rcx];
-    vaddsd xmm1, xmm0, qword ptr[rdx];
-    vmovsd qword ptr[r8], xmm1; 
+    vaddsd xmm0, xmm0, qword ptr[rdx];
+    vmovsd qword ptr[r8], xmm0; 
 	
 	dec r9;
 	jz done;

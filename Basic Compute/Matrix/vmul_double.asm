@@ -4,16 +4,15 @@
 ;Add_double(rcx, rdx, r8, r9)
 ;AVX is used, 4 single-float numbers are pocessed.
     .code
-mul_double proc
-
+vmul_double proc
     mov rax, r9;
     SHR rax, 02h;
-	;vbroadcasts
     jz sub_loop;
+
 main_loop:
     vmovupd ymm0, [rcx];
-    vaddpd ymm1, ymm0, [rdx];
-    vmovupd [r8], ymm1;
+    vmulpd ymm0, ymm0, [rdx];
+    vmovupd [r8], ymm0;
 
     add rcx, 20h;
     add rdx, 20h;
@@ -29,8 +28,8 @@ control:
 sub_loop:
 
 	vmovsd xmm0,qword ptr[rcx];
-    vaddsd xmm1, xmm0, qword ptr[rdx];
-    vmovsd qword ptr[r8], xmm1; 
+    vmulsd xmm0, xmm0, qword ptr[rdx];
+    vmovsd qword ptr[r8], xmm0; 
 	
 	dec r9;
 	jz done;
@@ -42,5 +41,5 @@ sub_loop:
 	jmp sub_loop;
 done:
 	ret
-mul_double endp
+vmul_double endp
 end

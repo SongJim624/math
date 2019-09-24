@@ -11,8 +11,8 @@ add_float proc
     jz sub_loop;
 main_loop:
     vmovups ymm0, [rcx];
-    vaddps ymm1, ymm0, [rdx];
-    vmovups [r8], ymm1;
+    vaddps ymm0, ymm0, [rdx];
+    vmovups [r8], ymm0;
 
     add rcx, 20h;
     add rdx, 20h;
@@ -29,8 +29,8 @@ control:
 sub_loop:
 
 	vmovss xmm0,dword ptr[rcx];
-    vaddss xmm1, xmm0, dword ptr[rdx];
-    vmovss dword ptr[r8], xmm1; 
+    vaddss xmm0, xmm0, dword ptr[rdx];
+    vmovss dword ptr[r8], xmm0; 
 
 	dec r9;
 	jz done

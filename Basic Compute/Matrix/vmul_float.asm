@@ -4,17 +4,16 @@
 ;Add_float(rcx, rdx, r8, r9)
 ;AVX is used, 8 single-float numbers are pocessed.
     .code
-mul_float proc
+vmul_float proc
     mov rax, r9;
     SHR rax, 03h;
 	
-    vshufps ymm2, ymm2, dword ptr [rdx];
-
     jz sub_loop;
 main_loop:
     vmovups ymm0, [rcx];
-    vmulps ymm1, ymm0, ymm2;
-    vmovups [r8], ymm1;
+
+    vmulps ymm0, ymm0, [rdx];
+    vmovups [r8], ymm0;
 
     add rcx, 20h;
     add rdx, 20h;
@@ -31,8 +30,8 @@ control:
 sub_loop:
 
 	vmovss xmm0,dword ptr[rcx];
-    vmulss xmm1, xmm0, dword ptr[rdx];
-    vmovss dword ptr[r8], xmm1; 
+    vmulss xmm0, xmm0, dword ptr[rdx];
+    vmovss dword ptr[r8], xmm0; 
 
 	dec r9;
 	jz done
@@ -43,5 +42,5 @@ sub_loop:
 	jmp sub_loop;
 done:
 	ret
-mul_float endp
+vmul_float endp
 end
