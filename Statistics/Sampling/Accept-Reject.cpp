@@ -8,7 +8,4 @@ float Accept_Reject(pf &pdf, size_t &num, float * &samples)
     {
         
     }
-
-
-
 }

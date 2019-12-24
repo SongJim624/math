@@ -1,6 +1,6 @@
 //Box - Muller Method
 //Single number
-#include "Sampling.h"
+#include "Normal.h"
 
 inline void Normal(const float &mu, const float &sigma, float &rng)
 {
