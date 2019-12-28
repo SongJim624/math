@@ -3,13 +3,19 @@
 #include "Sampling.h"
 
 template<typename T>
-class Normal
+class Normal : public PDF<T>, public CDF<T>, public Sample<T>
 {
 private:
     T mu, sigma;
 
+private:
+    std::vector<T> pdf(const std::vector<T>& X);
+    std::vector<T> cdf(const std::vector<T>& X);
+
 public:
-    Normal<T>(const T& mu, const T& sigma);    
+    Normal<T>(const T& mu, const T& sigma)
+    : mu(mu), sigma(sigma)
+    {};    
 };
 
 inline void Normal(const float &mu, const float &sigma, float &rng)

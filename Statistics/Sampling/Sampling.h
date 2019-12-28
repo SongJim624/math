@@ -1,9 +1,7 @@
 #pragma once
 #include <time.h>
-#include <string>
 #include <vector>
 #include <math.h>
-#include <array>
 
 template<typename T>
 class PDF
@@ -23,7 +21,7 @@ template<class T>
 class Sample
 {
 public:
-    virtual std::vector<T> sample(PDF<T>* dist, const std::vector<T> X) = 0;    
+    virtual std::vector<T> sample(const size_t& N) = 0;    
 };
 
 template<typename T>

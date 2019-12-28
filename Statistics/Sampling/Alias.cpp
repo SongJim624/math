@@ -7,13 +7,13 @@ void Alias(float * &x, float * &mass, const size_t &num, const size_t &num_out, 
 //This is suitable for the vector generation    
     float * mass_a = new float[num];
 
-    vector<size_t> A(0);
-    vector<size_t> B(0);
+    std::vector<size_t> A(0);
+    std::vector<size_t> B(0);
 
-    vector<size_t> Q1(0);
-    vector<size_t> Q2(0);
+    std::vector<size_t> Q1(0);
+    std::vector<size_t> Q2(0);
 
-    vector<float> mass_f(0);
+    std::vector<float> mass_f(0);
 
     float m;
     for(size_t i = 0; i < num; ++i)
@@ -69,7 +69,7 @@ void Alias(float * &x, float * &mass, const size_t &num, const size_t &num_out, 
 
     for(size_t i = 0; i < num_out; ++i)
     {
-        index = rand() % num;
+        size_t index = rand() % num;
         if((rand() % (float)RAND_MAX) > mass_f[index])
         {
             rngs[i] = Q2[index];
