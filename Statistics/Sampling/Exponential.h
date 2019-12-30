@@ -1,7 +1,7 @@
-#include "Sampling.h"
+#include "Distribution.h"
 
 template<typename T>
-class Exponential : public PDF<T>, public CDF<T>, public Sample<T>  
+class Exponential : public dist<T>  
 {
 private:    
     T lamada;
@@ -9,7 +9,6 @@ private:
 private:
     std::vector<T> pdf(const std::vector<T>& X);
     std::vector<T> cdf(const std::vector<T>& X);
-//    std::vector<T> sample(const std::vector<X>& Y)
 public:
     Exponential<T> (const T& lamada);
 };
