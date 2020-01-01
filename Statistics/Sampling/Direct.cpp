@@ -39,3 +39,10 @@ float Beta(int a, int b)
     }
     return numerator / denominator;
 }
+
+template<typename T>
+T Normal(const float &mu, const float &sigma)
+{
+    return sqrt(-2.0 * logf(rand() / (float)RAND_MAX)) *
+        cosf(rand() / (float)RAND_MAX) * sigma + mu;
+}

@@ -1,21 +1,18 @@
 #include "Sampling.h"
 
 //Metropolis
-template<typename T>
-std::vector<T> Metropolis(void* f, const size_t& N)
+std::vector<float> Metropolis(Distribution &dist, const size_t& N)
 {
-    std::vector<T> X(N);
+    srand(time(NULL));
+    std::vector<float> X(N);
 
-    srand(time(0));
+    float alpha = 0;
 
-    size_t i = 0;
-    T alpha = 0;
-
+    size_t i =  0;
     while(i < N)
     {
-        T u1 = (T)rand() / RAND_MAX;
-        T u2 = (T)rand() / RAND_MAX;
-
+        float u1 = rand() / (float)RAND_MAX;
+        float u2 = rand() / (float)RAND_MAX;
 
         alpha = min(pai(j) * q(i, j) / (pai(i) * q(j, i)), 1);
         
@@ -26,33 +23,35 @@ std::vector<T> Metropolis(void* f, const size_t& N)
         }
     }
 
-
-    return Y;
+    return X;
 }
 
 
 //Metropolis-Hasting
-template<typename T>
-std::vector<T> Metropolis_Hasting(void* f , const size_t& N)
+std::vector<float> Metropolis_Hasting(Distribution &dist, const size_t& N)
 {
 //p proposal
 //f distribution to be sampled.
-    std::vector<T> res(N);
-
     srand(time(NULL));
 
-    T u = rand() / (T)RAND_MAX;
+    std::vector<float>res(N);
 
-    T X_next = p.sample();
-
-    T alpha = min(f(X_next) / f(X), 1);
-
-    if(u < alpha)
+    for(size_t i = 0; i < N;++i)
     {
-        res[i] = X_next;
+        float u = rand() / (float)RAND_MAX;
+
+        float X_next = p.sample();
+
+        float alpha = min(dist.pdf(X_next) / f(X), 1);
+
+        if(u < alpha)
+        {
+            res[i] = X_next;
+        }
+        else
+        {
+            res[i] = X;
+        }
     }
-    else
-    {
-        res[i] = X;
-    }
+    return res;
 }

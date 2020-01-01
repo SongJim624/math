@@ -1,45 +1,37 @@
 #include "Exponential.h"
 
-template<typename T>
-Exponential<T>::Exponential(const T& x)
-: lamada(x)
-{}
-
-template<typename T>
-std::vector<T> Exponential<T>::pdf(const std::vector<T>& X)
+std::vector<float> Exponential::pdf(const std::vector<float>& X)
 {
-    std::vector<T>Y = X;
+    std::vector<float>Y(X.size());
 
     for(size_t i = 0; i < X.size(); ++i)
     {
-        Y[i] = Y[i] <= 0 ? 0 : this->lamada * exp(-this->lamada * X[i]);
+        Y[i] = Y[i] <= 0 ? 0 : lamada * exp(-lamada * X[i]);
     }
 
     return Y;
 }
 
-template<typename T>
-std::vector<T> Exponential<T>::cdf(const std::vector<T>& X)
+std::vector<float> Exponential::cdf(const std::vector<float>& X)
 {
-    std::vector<T>Y = X;
+    std::vector<float>Y = X;
 
     for(size_t i = 0; i < X.size(); ++i)
     {
-        Y[i] = Y[i] < 0 ? 0 : (1 - exp(-this->lamada * X[i]));
+        Y[i] = Y[i] < 0 ? 0 : (1 - exp(-lamada * X[i]));
     }
 
     return Y;
 }
 
-inline void rand_Exponential(const float &la = 1.0, float &rng)
-{
-    rng -logf((float)rand() / (float)RAND_MAX) / la; 
-}
+std::vector<float> rand_Exponential(const float &la = 1.0, const size_t& N)
+{   
+    std::vector<float> X(N);
 
-void rand_Exponential(const float &la = 1.0, size_t num, float * &rng)
-{
-    for(size_t i = 0; i < num; ++i)
+    for(size_t i = 0; i < N; ++i)
     {
-        rng[i] -logf((float)rand() / (float)RAND_MAX) / la; 
+     X[i] = -log(rand() / (float)RAND_MAX) / la; 
     }
+
+    return X;
 }

@@ -2,17 +2,18 @@
 
 #ifndef _Vector_
 #define _Vector_
-template<typename T>
-class Vector
+class vector
 {
+private:
     long num;
-    T* vec;
+    double* vec;
 public:
-    static Vector<T> dot(const Vector<T>& a, const Vector<T>& b);
-    static Vector<T> cross(const Vector<T>& a, const Vector<T>& b);
-    Vector<T> operator + (const Vector<T>& a);
-    Vector<T> operator - (const Vector<T>& a);
-    Vector<T> operator * (const T& a);
-    Vector<T> operator / (const T& a);
+    static dot(const vector& a, const vector& b);
+    static cross(const vector& a, const vector& b);
+    operator + (const vector& a);
+    operator - (const vector& a);
+    operator * (const double& a);
+    operator / (const double& a);
+    operator [](const long& index);
 };
 #endif

@@ -1,14 +1,15 @@
 #include "Distribution.h"
 
-template<typename T>
-class Exponential : public dist<T>  
+class Exponential : public Distribution  
 {
 private:    
-    T lamada;
+    float lamada;
 
 private:
-    std::vector<T> pdf(const std::vector<T>& X);
-    std::vector<T> cdf(const std::vector<T>& X);
+    std::vector<float> pdf(const std::vector<float>& X);
+    std::vector<float> cdf(const std::vector<float>& X);
 public:
-    Exponential<T> (const T& lamada);
+    Exponential (const float& lamada)
+    : lamada(lamada)
+    {};
 };

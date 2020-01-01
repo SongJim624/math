@@ -1,49 +1,33 @@
 #include <time.h>
 #include "Sampling.h"
 
-template<typename T>
-std::vector<T> Accept_Reject(void* f, const size_t& N, void* g, const T& M)
+double Accept_Reject(void* f, const size_t& N, void* g, const double& M)
 {
-    std::vector<T> X(N);
-    srand(time(0));
+    double rng = rand() / (double)RAND_MAX;
+    double x = sample(g);
 
-    size_t i = 0;
-    while(i < N)
+    if(rng < f(x) / (M * g(x)))
     {
-        T rng = rand() / (T)RAND_MAX;
-        T x = sample(g);
-
-        if(rng < f(x) / (M * g(x)))
-        {
-            X[i] = x;
-            ++i;
-        }
+        X[i] = x;
+        ++i;
     }
 
-    return X;
+    return rng;
 }
 
-template<typename T>
-std::vector<T> Envelope_Accept_Reject(void* f, const size_t& N,  void*g, void *gl, const T& M)
+double Envelope_Accept_Reject(void* f, void*g, void *gl, const double& M)
 {
-    std::vector<T> X(N);
-    srand(time(0));
+    double rng = rand() / (double)RAND_MAX;
+    double x = sample(g);
 
-    size_t i = 0;
-    while(i < N)
+    if(rng < gl(x) / (M * g(x)))
     {
-        T rng = rand() / (T)RAND_MAX;
-        T x = sample(g);
-
-        if(rng < gl(x) / (M * g(x)))
-        {
-            X[i] = x;
-            ++i;
-        }
-        else if(rng < f(x) / (M * g(x)))
-        {
-            X[i] = x;
-        }
+        X[i] = x;
+        ++i;
+    }
+    else if(rng < f(x) / (M * g(x)))
+    {
+        X[i] = x;
     }
 
     return X;

@@ -3,11 +3,10 @@
 
 #ifndef _Distribution_
 #define _Disribution_
-template<typename T>
-class dist
+class Distribution
 {
 public:
-    virtual std::vector<T> pdf(const std::vector<T> &X) = 0;
-    virtual std::vector<T> cdf(const std::vector<T> &X) = 0;    
+    virtual std::vector<float> pdf(const std::vector<float> &X) = 0;
+    virtual std::vector<float> cdf(const std::vector<float> &X) = 0;    
 };
 #endif
