@@ -1,24 +1,134 @@
 #include "Normal.h"
 
-template<typename T>
-std::vector<T> Normal<T>::pdf(const std::vector<T>& X)
+std::vector<float> Box_Muller::sampling(const size_t& N, Distribution* dist)
 {
-    std::vector<T> Y(X.size());
 
-    for(size_t i = 0; i < X.size(); ++i)
+    switch(type)
     {
-        Y[i] = exp(-0.5 * pow((X[i] - mu) / sigma, 2) / (sqrt(2.0 * pi) * sigma);
+    case 1:
+    {    
+        std::vector<float> X = sampling1(N, mu, sigma);
+        return X;
+    }
+    case 2:
+    {    
+        std::vector<float> X = sampling2(N, mu, sigma);
+        return X;
+    }
+    case 3:
+    {    
+        std::vector<float> X = sampling3(N, mu, sigma);
+        return X;
+    }
+    default:
+    {    
+        std::vector<float> X = sampling1(N, mu, sigma);
+        return X;
+    }
     }
 }
 
-
-
-//Vector
-void Normal(const float &mu, const float &sigma, size_t num, float * &rngs)
+void Box_Muller::ChangeParameter(const float& a, const float& b, const float& c, const float& d)
 {
-    for(size_t i = 0; i < num; ++i)
+    mu = a;
+
+    sigma = (b == 0.0) ? sigma : b;
+}
+
+Sampling* _stdcall Box_Muller(const float& mu, const float& sigma, const size_t& type)
+{
+    return Box_Muller::Construct(mu, sigma, type);
+}
+
+std::vector<float> sampling1(const size_t& N, const float& mu, const float& sigma)
+{
+    std::vector<float> X(N);
+
+    size_t i = 0;
+    
+    while(true)
     {
-        rngs[i] = sqrt(-2.0 * logf(rand() / (float)RAND_MAX)) *
-            cosf(rand() / (float)RAND_MAX) * sigma + mu;        
+        float u1 = Rand();
+        float u2 = Rand();
+
+        X[i] = sqrt(-2.0 * logf(u1)) * cosf(u2) * sigma + mu;
+        ++i;
+
+        if(i == N)
+        {
+            break;
+        }
+
+        X[i] = sqrt(-2.0 * logf(u1)) * sinf(u2) * sigma + mu;
+        ++i;
+
+        if(i == N)
+        {
+            break;
+        }
     }
+
+    return X;
+}
+
+std::vector<float> sampling2(const size_t& N, const float& mu, const float& sigma)
+{
+    std::vector<float> X(N);
+
+    size_t i = 0;
+    
+    while(true)
+    {
+        float u1 = Rand();
+        float u2 = Rand();
+
+        X[i] = sqrt(-2.0 * logf(u1)) * cosf(u2) * sigma + mu;
+        ++i;
+
+        if(i == N)
+        {
+            break;
+        }
+
+        X[i] = sqrt(-2.0 * logf(u1)) * sinf(u2) * sigma + mu;
+        ++i;
+
+        if(i == N)
+        {
+            break;
+        }
+    }
+
+    return X;
+}
+
+std::vector<float> sampling3(const size_t& N, const float& mu, const float& sigma)
+{
+    std::vector<float> X(N);
+
+    size_t i = 0;
+    
+    while(true)
+    {
+        float u1 = Rand();
+        float u2 = Rand();
+
+        X[i] = sqrt(-2.0 * logf(u1)) * cosf(u2) * sigma + mu;
+        ++i;
+
+        if(i == N)
+        {
+            break;
+        }
+
+        X[i] = sqrt(-2.0 * logf(u1)) * sinf(u2) * sigma + mu;
+        ++i;
+
+        if(i == N)
+        {
+            break;
+        }
+    }
+
+    return X;
 }

@@ -1,8 +1,6 @@
 //This is for the one dimension condition
 #include "Sampling.h"
 
-typedef float(*pf) (float);
-
 float Gamma(float alpha, float beta)
 {
     float r = 0;
@@ -22,7 +20,7 @@ float Beta(int a, int b)
     float r;
     for(int i = 0; i < a + b; i++)
     {
-        r = -log((float)rand() / (float)RAND_MAX);
+        r = -log(Rand());
 
         denominator += r;
 
@@ -38,11 +36,4 @@ float Beta(int a, int b)
         
     }
     return numerator / denominator;
-}
-
-template<typename T>
-T Normal(const float &mu, const float &sigma)
-{
-    return sqrt(-2.0 * logf(rand() / (float)RAND_MAX)) *
-        cosf(rand() / (float)RAND_MAX) * sigma + mu;
 }

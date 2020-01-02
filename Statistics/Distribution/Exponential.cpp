@@ -23,15 +23,3 @@ std::vector<float> Exponential::cdf(const std::vector<float>& X)
 
     return Y;
 }
-
-std::vector<float> rand_Exponential(const float &la = 1.0, const size_t& N)
-{   
-    std::vector<float> X(N);
-
-    for(size_t i = 0; i < N; ++i)
-    {
-     X[i] = -log(rand() / (float)RAND_MAX) / la; 
-    }
-
-    return X;
-}

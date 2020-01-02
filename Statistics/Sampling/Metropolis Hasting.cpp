@@ -1,57 +1,39 @@
-#include "Sampling.h"
+#include "Metropolis Hasting.h"
 
-//Metropolis
-std::vector<float> Metropolis(Distribution &dist, const size_t& N)
-{
-    srand(time(NULL));
-    std::vector<float> X(N);
-
-    float alpha = 0;
-
-    size_t i =  0;
-    while(i < N)
-    {
-        float u1 = rand() / (float)RAND_MAX;
-        float u2 = rand() / (float)RAND_MAX;
-
-        alpha = min(pai(j) * q(i, j) / (pai(i) * q(j, i)), 1);
-        
-        if(u2 < alpha)
-        {
-            X[i] = 
-            ++i;
-        }
-    }
-
-    return X;
-}
-
-
-//Metropolis-Hasting
-std::vector<float> Metropolis_Hasting(Distribution &dist, const size_t& N)
+std::vector<float> Metropolis_Hasting::sampling(const size_t& N, Distribution *dist)
 {
 //p proposal
 //f distribution to be sampled.
-    srand(time(NULL));
 
     std::vector<float>res(N);
 
+    std::vector<float> X(1);
+    X[0] = X0;
+
     for(size_t i = 0; i < N;++i)
     {
-        float u = rand() / (float)RAND_MAX;
+        float u = Rand();
 
-        float X_next = p.sample();
+        proposal->ChangeParameter(X[0]);
+        std::vector<float> X_next = proposal->sampling(1);
+        
 
-        float alpha = min(dist.pdf(X_next) / f(X), 1);
+        float alpha = fminf(dist->pdf(X_next)[0] / dist->pdf(X)[0], 1);
 
         if(u < alpha)
         {
-            res[i] = X_next;
+            res[i] = X_next[0];
         }
         else
         {
-            res[i] = X;
+            res[i] = X[0];
         }
     }
+
     return res;
+}
+
+_declspec (dllexport) Sampling* _stdcall Metropolis_Hasting(const float& X0)
+{
+    return Metropolis_Hasting::Construct(X0);
 }

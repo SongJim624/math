@@ -1,10 +1,10 @@
 #include <time.h>
 #include "Sampling.h"
 
-double Accept_Reject(void* f, const size_t& N, void* g, const double& M)
+float Accept_Reject(void* f, const size_t& N, void* g, const float& M)
 {
-    double rng = rand() / (double)RAND_MAX;
-    double x = sample(g);
+    float rng = rand() / (float)RAND_MAX;
+    float x = sample(g);
 
     if(rng < f(x) / (M * g(x)))
     {
@@ -15,10 +15,10 @@ double Accept_Reject(void* f, const size_t& N, void* g, const double& M)
     return rng;
 }
 
-double Envelope_Accept_Reject(void* f, void*g, void *gl, const double& M)
+float Envelope_Accept_Reject(void* f, void*g, void *gl, const float& M)
 {
-    double rng = rand() / (double)RAND_MAX;
-    double x = sample(g);
+    float rng = rand() / (float)RAND_MAX;
+    float x = sample(g);
 
     if(rng < gl(x) / (M * g(x)))
     {
