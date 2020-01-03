@@ -13,7 +13,7 @@ std::vector<float> KDE::pdf(const std::vector<float> &X)
 			Density += kernel((X[i] - xData[j]) / h[j]) / h[j];
 		};
 
-		Y[i] = Density / Y.size();
+		Y[i] = Density / h.size();
 	}
 	return Y;
 };
