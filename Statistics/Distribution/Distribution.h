@@ -4,12 +4,14 @@
 #define PI 3.1415926
 
 #ifndef _Distribution_
-#define _Disribution_
+#define _Distribution_
+template<typename T>
 class Distribution
 {
 public:
-    virtual std::vector<float> pdf(const std::vector<float> &X) = 0;
-    virtual std::vector<float> cdf(const std::vector<float> &X) = 0;    
+    virtual std::vector<T> pdf(const std::vector<T> &X) = 0;
+    virtual T pdf(const T &X) = 0;
+    virtual std::vector<T> cdf(const std::vector<T> &X) = 0;    
 };
 #endif
 

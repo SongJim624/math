@@ -1,11 +1,14 @@
 #include "Equation.h"
+constexpr tol 0.000001
 
-void Equation::Newton(pf &f, pf &df, float &x, const float &Tol = 0.000001)
+template<typename T>
+T Newton(pf &f, pf &df, const T &x)
 {
-    float y = f(x);
-    while(y > Tol)
+    T xn = x + 1;
+    while(abs(x - xn) > Tol)
     {
-        x = x - y / df(x);
-        y = f(x);
+        xn = x - f(x) / df(x);
     }
+
+    return xn;
 }
