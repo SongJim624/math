@@ -1,89 +1,66 @@
 #include "math.h"
+#include <string>
 
-template <class T>
+#ifndef _INTERPOLATION_
+#define _INTERPOLATION_
+template<typename T>
 class Interpolation
 {
-    size_t num, pos;
-    T * x;
-    T * y;
+protected:
+    const long length;
+    T * X, * Y;
 
-    size_t Search(const T &x)
-    {
-        if(x < this->x[0])
-        {
-            return 0;
-        }
-        else if(x > this->x[num - 1])
-        {
-            return num;
-        }
+protected:
+    void Location(const T& x, long& left, long& right);
 
-        size_t left = 0, right = num - 1;
-        size_t middle = num / 2;
-
-        while((right - left) == 1)
-        {
-            if(x > this->x[middle])
-            {
-                left = middle
-            }
-            else if(x < this->x[middle])
-            {
-                right = middle;
-            }
-            else
-            {
-                return middle;
-            }
-
-            middle = (left + right) / 2;
-        }  
-    }
 public:
-    Interpolation(T * const &x, T* const &y, const size_t &num)
-    : x(x), y(y), num(num), pos(0) {}
+    Interpolation(T * X, T * Y, const long& length);
+    virtual ~Interpolation();
 
-    virtual ~Interpolation() = 0;    
+    virtual T Interpolate(const T& x) = 0;
+};
+
+template<typename T>
+class Largrange : public Interpolation<T>
+{
 public:
-    virtual void Interpolate(T* const &x, T* const &y, const size_t &L) = 0;
+    Largrange(T * X, T * Y, const long& length);
+    virtual ~Largrange();
+
+    virtual T Interpolate(const T& x);
 };
 
 template<class T>
-class Hermite
+class Hermite : public Interpolation<T>
 {
-    T r, interval;
-    T * dy;
-public:
-    Hermite(T * const &x, T* const &y, T * const &dy, const size_t &num)
-    : r(0), interval(0), dy(dy), Interpolation(x, y, num){}
-    ~Hermite()
+private:    
+    T * dY;
+
+private:
+    T H0(const T& rel);
+    T H1(const T& rel);
 
 public:
-    Interpolate(T* const &x, T* const &y, const size_t &L)
-    {
-        for(size_t i = 0;i < L; ++i)
-        {
-            pos = Search(x[i]);
+    Hermite(T * X, T * Y, T * dY, const long& length);
+    virtual ~Hermite();
 
-            if(pos == num|| pos == 0)
-            {
-                y[i] = Nan();
-                printf("Warning : The point is not in the interpolation interval, please use the extrapolation !\n");
-                printf("Warning : The value is set Nan !");
-                continue;
-            }
-
-            r = (x[i] - this->x[pos]) / (this->x[pos + 1] - this->x[pos]);
-            
-            y[i] = this->y[pos] * (1 + 2 * r) * pow(r - 1, 2) +
-                this->y[pos + 1] * (3 - 2 * r) * pow(r, 2) +
-                (dy[pos] * r * pow(r - 1, 2) + 
-                dy[pos + 1] *(r - 1) * pow(r, 2)) * interval;
-        }
-
-    }  
+    virtual T Interpolate(const T& x);
 };
 
+template<typename T>
+class Spline : public Interpolation<T>
+{
+private:
+    Hermite<T>* hermite;
+
+public:
+    Spline(T* X, T* Y, const long& length, size_t type);
+    ~Spline();
+
+    virtual T Interpolate(const T& x);
+};
+
+/*
 template <class T>
 class Spline : public Hermite
 {
@@ -149,3 +126,5 @@ public:
         delete[] dy;
     }
 }
+*/
+#endif 
