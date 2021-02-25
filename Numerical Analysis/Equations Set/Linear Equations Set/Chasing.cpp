@@ -7,23 +7,23 @@ The structure of the matrix is :
     0, 0, a, b
 */
 template<typename T>
-class Triangle
+class Tridiagonal
 {
 private:
-    std::vector<T> A, B, C;
+    const long length;
+    T* A, * B, * C;
 
 public:
-    Triangle(const std::vector<T>& a, const std::vector<T>& b, const std::vector<T>& c)
-        : A(a), B(b), C(c) {}
+    Triangle(T * A, T* B, T* C);
 
     T& operator ()(const size_t& r, const size_t& c)
     {
         if (r == c){return B[r];}
-        if (r == c + 1) { return A[r - 1]; }
-        if (r == c - 1) { return C[r]; }
+        if (r > c) { return A[r - 1]; }
+        if (r < c) { return C[r]; }
     }
 
-    size_t size() { return B.size(); }
+    long size() { return length; }
 };
 
 template<typename T>
