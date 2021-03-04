@@ -1,17 +1,43 @@
-#include <math.h>
-#include <vector>
 
-typedef float * (* fitness)(float *);
-typedef float (* constraints)(float *); 
+#ifndef _Mathematical_Tools_Optimization_Gentic Algorithms_
+#define _Mathematical_Tools_Optimization_Gentic Algorithms_
 
-class GA
+#include "../Optimizor.h"
+#include <stdlib.h>
+
+class Individual
 {
-//The cross over setions
+public:
+    static long decision_size, objective_size;
+    static float* upper, * lower;
+    static bool* integer;
 
-//The mutation sections
+    float voilate;
+    float* decisions, * objectives;
 
-//The select sections
+public:
+    Individual();
+    ~Individual();
+};
 
-    void GetProblem(int &Fitness, size_t &num_dec, size_t &num_obj,
-        float * &Lower, float * &Upper, size_t * Integer, int &Constraint);
-}
+class Genetic
+{
+public:
+    ~Genetic() {}
+
+    virtual void Cross(Individual& father, Individual& mother, Individual& son, Individual& daughter) = 0;
+    virtual void Mutation(Individual& individual) = 0;
+};
+
+class Genetic_Algorithm : public Optimizor
+{
+protected:
+    Genetic* genetic;
+
+public:
+    Genetic_Algorithm() : genetic(nullptr) {}
+    ~Genetic_Algorithm() {}
+
+    virtual void Optimize(const char* results_path = nullptr) = 0;
+};
+#endif // !_Mathematical_Tools_Optimization_Gentic Algorithms_
