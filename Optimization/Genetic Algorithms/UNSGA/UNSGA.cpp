@@ -1,7 +1,7 @@
 #include "UNSGA.h"
 
 Individual_UNSGA::Individual_UNSGA()
-	: cost(new float [Individual::objective_size]), dominated(0), distance(0)
+	: dominated(0), distance(0)
 {}
 
 Individual_UNSGA::~Individual_UNSGA()

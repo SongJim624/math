@@ -109,11 +109,14 @@ void UNSGA::Interception(std::list<Individual_UNSGA*>& bottom)
 	std::vector<float> ASF(Individual::objective_size, +INFINITY);
 	std::vector<Individual_UNSGA*> extreme(Individual::objective_size, nullptr);
 
+    
+    float * cost = new float[Individual::objective_size];
+    
 	for (auto iter : bottom)
 	{
 		for (long i = 0; i < Individual::objective_size; ++i)
 		{
-			iter->cost[i] = iter->individual.objectives[i] - ideal[i];
+			cost[i] = iter->individual.objectives[i] - ideal[i];
 		}
 
 		for (long i = 0; i < Individual::objective_size; ++i)
@@ -122,7 +125,7 @@ void UNSGA::Interception(std::list<Individual_UNSGA*>& bottom)
 
 			for (long j = 0; j < Individual::objective_size; ++j)
 			{
-				asf = fmaxf(iter->cost[j] / ((j == i) * 1.0f + (j != i) * 1e-6f), asf);
+				asf = fmaxf(cost[j] / ((j == i) * 1.0f + (j != i) * 1e-6f), asf);
 			}
 
 			if (ASF[i] > asf)
@@ -132,7 +135,9 @@ void UNSGA::Interception(std::list<Individual_UNSGA*>& bottom)
 			}
 		}
 	}
-
+    
+    delete[] cost;
+    
 	for (long i = 0; i < Individual::objective_size; ++i)
 	{
 		interception[i] = 1.0f;
