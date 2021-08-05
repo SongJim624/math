@@ -1,9 +1,7 @@
-
-#ifndef _Mathematical_Tools_Optimization_Gentic Algorithms_
-#define _Mathematical_Tools_Optimization_Gentic Algorithms_
-
 #include "../Optimizor.h"
-#include <stdlib.h>
+
+#ifndef _SJML_Optimization_Gentic Algorithms_
+#define _SJML_Optimization_Gentic_Algorithms_
 
 class Individual
 {
@@ -23,7 +21,7 @@ public:
 class Genetic
 {
 public:
-    ~Genetic() {}
+    virtual ~Genetic() {}
 
     virtual void Cross(Individual& father, Individual& mother, Individual& son, Individual& daughter) = 0;
     virtual void Mutation(Individual& individual) = 0;
@@ -36,8 +34,8 @@ protected:
 
 public:
     Genetic_Algorithm() : genetic(nullptr) {}
-    ~Genetic_Algorithm() {}
+    virtual ~Genetic_Algorithm() {}
 
     virtual void Optimize(const char* results_path = nullptr) = 0;
 };
-#endif // !_Mathematical_Tools_Optimization_Gentic Algorithms_
+#endif // !_SJML_Optimization_Gentic Algorithms_

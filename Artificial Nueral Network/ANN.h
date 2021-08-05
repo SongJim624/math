@@ -1,4 +1,9 @@
-#include "math.h"
+#include <math.h>
+
+class Ueuron
+{
+
+};
 
 class Node
 {
@@ -46,18 +51,6 @@ class ANN
 protected:
 //Network structure    
 
-
-
-    inline float Sigmoid(const float &x)
-    {
-        return  1 / (1 - exp(-x));
-    }
-
-    inline float Tan(const float &x)
-    {
-        return 
-    }
-
 public:    
     virtual void Train(float ** &x, float ** &y, const size_t &num) = 0;
     virtual void Simulation(float * &x, float * &y) = 0;
@@ -67,8 +60,8 @@ class BP : public ANN
 {
 private:
     BP(const size_t &input, const size_t &hidden, const size_t &output);
-    void Train(float ** &x, float ** &y, const size_t &num);
-    void Simulation(float * &x, float * &y);
+    virtual void Train(float ** &x, float ** &y, const size_t &num);
+    virtual void Simulation(float * &x, float * &y);
 public:
     static ANN * Create(const size_t &input, const size_t &hidden, const size_t &output)
     {

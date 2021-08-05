@@ -1,27 +1,37 @@
-#ifndef _Mathematical_Tools_Optimization_Optimizor_
-#define _Mathematical_Tools_Optimization_Optimizor_
-class Function
+#ifndef _SJML_Optimization_Optimizor_
+#define _SJML_Optimization_Optimizor_
+namespace SJML
 {
-public:
-	virtual void function(float* decisions, const long& decision_size, float* objectives, const long& objective_size) = 0;
-};
+	namespace Optimization
+	{
+		namespace Optimizor
+		{
+			class Objective
+			{
+			public:
+				virtual void objectives(float * decisions,  long decision_size, float * objectives, loong objective_size) = 0;
+				virtual ~Objective(){};
+			};
 
-class Constraints
-{
-public:
-	virtual float constraints(float* decisions, const long& decision_size, float* objectives, const long& objective_size) = 0;
-};
+			class Constraint
+			{
+			public:
+				virtual float constraints(float * decisions, long decision_size, float * objectives, long objective_size) = 0;
+				virtual ~Constraint(){};
+			};
 
-class Optimizor
-{
-protected:
-	Function* function;
-	Constraints* constraints;
-public:
-	Optimizor() : function(nullptr), constraints(nullptr){}
-	~Optimizor() {}
+			class Optimizor
+			{
+			protected:
+				Objective* objective_function;
+				Constraint* constraint_function;
 
-	virtual void Optimize(const char* results_path = nullptr) = 0;
-};
-
-#endif // !_Mathematical_Tools_Optimization_Optimizor_
+			public:
+				Optimizor() : objective_function(nullptr), constraint_function(nullptr){}
+				virtual ~Optimizor(){objective_function = nullptr; constraint_function = nullptr;}
+				virtual void Optimize(const char * resutls) = 0;
+			};
+		}
+	}
+}
+#endif // !_SJML_Optimization_Optimizor_
