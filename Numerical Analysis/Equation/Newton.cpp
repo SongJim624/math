@@ -1,14 +1,20 @@
 #include "Equation.h"
-constexpr tol 0.000001
 
-template<typename T>
-T Newton(pf &f, pf &df, const T &x)
+float Newton(std::function<float(float)> function, std::function<float(float)> derivate, float begin, float tol)
 {
-    T xn = x + 1;
-    while(abs(x - xn) > Tol)
-    {
-        xn = x - f(x) / df(x);
-    }
+    float next = begin + 1;
 
-    return xn;
+    while(true)
+    {
+        next = begin - function(begin) / derivate(begin);
+
+        if(fabsf(begin - next) > tol)
+        {
+            return next;
+        }
+        else
+        {
+            begin = next;
+        }
+    }
 }

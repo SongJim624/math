@@ -1,14 +1,29 @@
 #pragma once
 #include <math.h>
-#include <iostream>
+#include <functional>
 
-typedef float(*pf)(float);
+class Solver
+{
+private:
+    float tolerance_;
+    std::function<float(float)> function_, derivate_;
 
-class Equation
+public:
+    float Bisection(float left, float right);
+    float Newton(float begin);
+    float Steffenson(float begin);
+
+public:
+    Solver(std::function<float(float)>&, float);
+
+    float tolerance() const;
+    float& tolerance();
+};
+
+class MatrixSolver
 {
 public:
-    void Bisection(pf &function, float &a, float &b,
-        float &x, const float &Tol = 0.000001);
-    void Newton(pf &f, pf &df, float &x, const float &Tol = 0.000001);
-    void Steffensen(pf &f, float &x, const float &Tol = 0.000001);
-}
+    std::vector<float> Doolittle();
+    std::vector<float> Gauss();
+    std::vector<float> Jacobi();
+};

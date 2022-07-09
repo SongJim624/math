@@ -1,59 +1,31 @@
 #include "Equation.h"
 
-void Equation::Bisection(pf &f, float &a, float &b,
-    float &x, const float & Tol = 0.000001)
+float Bisection(std::fucntion<float(float)>& f, float left, float right, float tol)
 {
-    float fa = f(a);
-    float fb = f(b);
+    float left_ = f(left);
+    float right_ =f(right);
 
-    if(fa * fb > 0)
+    while(true)
     {
-        printf("Error : The value of f(a)f(b) is larger than 0 !\n");
-        return;
-    }
+        assert(left_ * right_ < 0, "solution not in the interval");
 
-    size_t type = fa > 0 ? 1 : 2;
-    
-    x = 0.5 * (b - a);
-    float y = f(x);
+        float middle = 0.5f * (left + right);
+        float value = f(middle);
 
-    switch(type)
-    {
-        case 1:
+        if(fabsf(value) < tol)
         {
-            while(y > Tol)
-            {
-                if(y > 0)
-                {
-                    a = x;
-                }
-                else
-                {
-                    b = x;
-                }
-                
-                x = 0.5 * (b - a);
-                y = f(x);
-            }
-            return;
+            return middle;
         }
-        case 2:
+
+        if(value * left < 0)
         {
-            while(y > Tol)
-            {
-                if(y > 0)
-                {
-                    b = x;
-                }
-                else
-                {
-                    a = x;
-                }
-                
-                x = 0.5 * (b - a);
-                y = f(x);
-            }
-            return;
+            right = middle;
+            right_ = value;
+        }
+        else
+        {
+            left = middle;
+            left_ = value;
         }
     }
 }

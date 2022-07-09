@@ -1,3 +1,6 @@
+
+//std::vector<float> Doolittle(const Matrix& A, std::vector<float>& b)
+
 void Doolittle(float ** &A, float * &b, size_t &num, float * &x)
 {
 	for (size_t i = 0; i < num; ++i)
@@ -69,7 +72,7 @@ void Doolittle(float ** &A, float * &b, size_t &num, float * &x)
 		{
 			sum += A[i][k] * x[k];
 		}
-	
+
 		x[i] = (x[i] - sum) / A[i][i];
 	}
 }

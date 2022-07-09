@@ -1,5 +1,9 @@
 #include "stddef.h"
 #include "math.h"
+#include <vector>
+#include <functional>
+
+std::vector<float> Steffen(std::function<std::vector<float>(std::vector<float>&)>& function, std::vector<float> begin)
 
 typedef (double *pf)(double const * , const size_t &num)
 void Steffen(pf const *Fun, double * const x, const size_t &num)
