@@ -2,6 +2,13 @@
 #include <math.h>
 #include <functional>
 
+/*
+* a universal solver
+template<typename T>
+T solve(std::function<T(const T&)>)
+{
+}
+*/
 class Solver
 {
 private:
