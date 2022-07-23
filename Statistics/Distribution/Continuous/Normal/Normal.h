@@ -1,30 +1,16 @@
 #include "../Continuous.h"
 
-#ifndef _SJML_STATISTICS_DISTRIBUTION_CONTINUOUS_NORMAL_
-#define _SJML_STATISTICS_DISTRIBUTION_CONTINUOUS_NORMAL_
-namespace SJML
+class Normal : public Distribution
 {
-    namespace Statistics
-    {
-        namespace Distribution
-        {
-            namespace Continuous
-            {
-                class Normal : public Continuous
-                {
-                protected:
-                    const float pi, mu, sigma;
+protected:
+    constexpr float pi = 3.1415926f;
+    float mu, sigma;
 
-                public:
-					Normal(const float& mu, const float& sigma);
-                    virtual ~Normal();
+public:
+    Normal(float mu, float sigma);
+    virtual ~Normal();
 
-                public:
-                    virtual void density(float * X, float * Y, long size);
-                    virtual void distribution(float * X, float * Y, long size);
-                };
-            }
-        }
-    }
-}
-#endif //! _SJML_STATISTICS_DISTRIBUTION_CONTINUOUS_NORMAL_
+public:
+    virtual float density(float);
+    virtual float distribution(float);
+};
