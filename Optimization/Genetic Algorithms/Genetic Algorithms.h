@@ -1,4 +1,5 @@
 #include "../Optimizor.h"
+#include <functional>
 
 #ifndef _SJML_Optimization_Gentic Algorithms_
 #define _SJML_Optimization_Gentic_Algorithms_
@@ -38,4 +39,23 @@ public:
 
     virtual void Optimize(const char* results_path = nullptr) = 0;
 };
+
+class UNSGA
+{
+private:
+    size_t decisions_, objectives_;
+    float * upper_, * lower_;
+    bool * integer_;
+
+private:
+    struct Individual;
+
+private:
+
+private:
+
+
+};
+
+
 #endif // !_SJML_Optimization_Gentic Algorithms_

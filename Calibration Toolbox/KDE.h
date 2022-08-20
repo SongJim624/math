@@ -33,7 +33,7 @@ private:
 
 private:
     float regEM(float& del, const std::vector<float>& X,
-        float* log_lh, float* log_sig, float* maxll, 
+        float* log_lh, float* log_sig, float* maxll,
         float* maxlsig, float* density, float* psigd, float* ones);
 
 private:

@@ -1,5 +1,14 @@
 #ifndef _SJML_Optimization_Optimizor_
 #define _SJML_Optimization_Optimizor_
+#include <vector>
+
+class Optimizor
+{
+public:
+	void Optimize();
+};
+
+
 namespace SJML
 {
 	namespace Optimization
@@ -9,7 +18,7 @@ namespace SJML
 			class Objective
 			{
 			public:
-				virtual void objectives(float * decisions,  long decision_size, float * objectives, loong objective_size) = 0;
+				virtual void objectives(float * decisions,  long decision_size, float * objectives, long objective_size) = 0;
 				virtual ~Objective(){};
 			};
 

@@ -11,6 +11,8 @@
 #include <fstream>
 #include <string>
 
+
+
 class Individual_UNSGA
 {
 public:
@@ -76,7 +78,6 @@ private:
 
 private:
 	std::list<std::list<float>> Reference(const long& M, const long& N);
-	
 	void Normalize(std::list<Individual_UNSGA*>& selected);
 
 private:
@@ -102,4 +103,29 @@ public:
 
 	virtual void Optimize(const char* results_path = nullptr);
 };
+
+class UNSGA
+{
+private:
+	struct Individual
+	{
+		std::vector<float> decisions;
+		std::list<Individual*> dominates;
+		size_t dominated;
+		float distance;
+	};
+
+	struct Point
+	{
+		std::vector<float> decisions;
+		std::list<Individual *> appendeds;
+	};
+
+private:
+
+
+public:
+	void Optimize();
+};
+
 #endif // !_Mathematical_Tools_Optimization_Genetic_Algorithms_UNSGA_
