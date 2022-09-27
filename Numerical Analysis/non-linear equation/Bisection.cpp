@@ -1,4 +1,4 @@
-#include "Equation.h"
+#include "solver.h"
 
 float Bisection(std::fucntion<float(float)>& f, float left, float right, float tol)
 {

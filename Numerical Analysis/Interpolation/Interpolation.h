@@ -1,63 +1,40 @@
 #include "math.h"
+#include <list>
 #include <string>
 
 #ifndef _INTERPOLATION_
 #define _INTERPOLATION_
-template<typename T>
 class Interpolation
 {
-protected:
-    const long length;
-    T * X, * Y;
-
-protected:
-    void Location(const T& x, long& left, long& right);
-
 public:
-    Interpolation(T * X, T * Y, const long& length);
-    virtual ~Interpolation();
-
-    virtual T Interpolate(const T& x) = 0;
+    virtual float Interpolate(float) = 0;
+    virtual void Interpolate(const float *, float *, size_t) = 0;
 };
 
-template<typename T>
-class Largrange : public Interpolation<T>
+class Largrange : public Interpolation
 {
 public:
-    Largrange(T * X, T * Y, const long& length);
+    Largrange(float * values, float * sites, size_t size);
     virtual ~Largrange();
-
-    virtual T Interpolate(const T& x);
 };
 
-template<class T>
-class Hermite : public Interpolation<T>
+class Hermite : public Interpolation
 {
-private:    
-    T * dY;
-
 private:
-    T H0(const T& rel);
-    T H1(const T& rel);
 
 public:
-    Hermite(T * X, T * Y, T * dY, const long& length);
+    Hermite(float * values, float * derivates, float * sites, size_t size);
     virtual ~Hermite();
 
     virtual T Interpolate(const T& x);
 };
 
-template<typename T>
-class Spline : public Interpolation<T>
+class Spline : public Interpolation
 {
-private:
-    Hermite<T>* hermite;
 
 public:
-    Spline(T* X, T* Y, const long& length, size_t type);
+    Spline(float * values, float * sites, size_t size, size_t code);
     ~Spline();
-
-    virtual T Interpolate(const T& x);
 };
 
 /*
@@ -127,4 +104,4 @@ public:
     }
 }
 */
-#endif 
+#endif

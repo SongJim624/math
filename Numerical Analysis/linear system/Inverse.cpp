@@ -2,7 +2,12 @@
 
 //This method is from the Numerical Analysis
 //David kincaid Third version page 157
-void Inverse(float ** &A, size_t &num)
+
+void Inverse(const float * matrix, float * inversion, size_t size)
+{
+    
+}
+void Inverse(float ** A, size_t num)
 {
     size_t n = 20;
     for(size_t i =0; i < num; ++i)

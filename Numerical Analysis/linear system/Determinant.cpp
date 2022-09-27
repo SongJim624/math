@@ -2,7 +2,7 @@
 #include <math.h>
 
 //This is the orgnial thinkings.
-float Determinant(float ** &A, const size_t &num)
+float Determinant(const float ** A, size_t num)
 {
     float res = 0;
     
