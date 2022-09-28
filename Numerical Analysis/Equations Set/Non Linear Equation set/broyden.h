@@ -4,28 +4,15 @@
 class Broyden
 {
 private:
+    size_t scale_;
     //tolerance, two types
     float relative_, absolute_;
-    //std::function<void(float *, float *)> solver_;
-    std::function<int(float *)> updater_;
-
-    //the class should keep a reference of the function to be solved
-    std::function<void(float *, float *)> function_;
-
-private:
-    class Strategy
-    {
-    private:
-        std::map<std::string, std::function<int(float *)>> updaters_;
-
-    public:
-        Strategy();
-        std::function<int(float *, float *)> search(const char *);
-    };
+    //non-linear system to be solved
+    std::function<void(float *, float *, size_t)> target_;
 
 public:
-    std::vector<float> Solve(const std::vector<float>& initial);
+    void Solve(const float * initial, float * result);
 
 public:
-    Broyden(std::function<void(float *, float *)>&, size_t, size_t, float, float, const char *);
+    Broyden(std::function<void(float *, float *, size_t)>& target, size_t, float, float);
 };

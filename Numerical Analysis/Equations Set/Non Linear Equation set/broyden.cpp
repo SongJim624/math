@@ -1,48 +1,52 @@
-#include <broyden.h>
+#include "broyden.h"
 
-Broden::Broyden()
+void Jacobian(std::function<void(float *, float *, size_t)>& system, float * location, float * jacobian, size_ t scale)
 {
+    float * current = (float *) mkl_malloc(scale * sizeof(float), 64);
+    system(location, current, scale);
 
+    float * disturbed = (float *) mkl_malloc(scale * sizeof(float), 64);
+    float disturbance = (float *) mkl_malloc(scale * sizeof(float), 64);
+    cblas_sscopy(scale, current, 1, disturbance, 1);
+
+    for(auto& function : functions)
+
+    for(size_t i = 0; i < scale; ++i)
+    {
+        if (i > 0)
+        {
+            disturbance[i - 1] -= 0.001;
+        }
+
+        disturbance[i] += 0.001;
+        system(disturbance, disturbed, scale);
+
+        for(size_t j = 0; j < scale; ++j)
+        {
+            jacobian[i * size + j] = 1000 * (disturbed[j] - current[j]);
+        }
+    }
 }
 
 /*
 function description :
 */
-Broyden::Solve(const std::vector<float>& initial)
+void Broyden::Solve(const float * initial, float * result)
 {
-    //allocate the objectives
+    //assign the initial point to the result
+    cblas_sscopy(initial, result, scale_);
+
+    //allocate variables
     float * secant = (float *) mkl_malloc(length * sizeof(float), 64);
-    float * current = (float *) mkl_malloc(length * sizeof(float), 64);
+    float * original = (float *) mkl_malloc(length * sizeof(float), 64);
     float * updated = (float *) mkl_malloc(length * sizeof(float), 64);
-    //allocate the decisions
-    float * solution = (float *) mkl_malloc(length * sizeof(float), 64);
-    float * disturbance = (float *) mkl_malloc(length * sizeof(float), 64);
-
-    //allocate the matrices
     float * hessian = (float *) mkl_malloc(length * length * sizeof(float), 64);
-    float * increment = (float *) mkl_malloc(length * length * sizeof(float), 64);
-    //TODO: temperory should be move to the updater
-//    float * temperory = (float *) mkl_malloc(length * length * sizeof(float), 64);
 
-    //assign the values to the decisions
-    cblas_scopy(length, &initial[0], 1, solution, 1);
+    //calculate the values and Jacobian at the initial point
+    target_(initial, original, scale_);
+    Jacobian(target_, initial, hessian, scale_);
 
-    cblas_scopy(length, &initial[0], 1, disturbance, 1);
-    cblas_sscale(length, 0.999f, disturbance, 1);
-
-    //calculating the numerical Jacobi matrix
-    function(solution, current);
-    function(disturbance, updated);
-
-    for(size_t i = 0; i < length; ++i)
-    {
-        for(size_t j = 0; j < length; ++j)
-        {
-            hessian[length * (i - 1) + j] = (current[i] - updated[i]) / (solution[j] - disturbance[j]);
-        }
-    }
-
-    //get the inverse of the Jacobi matrix, disturbance is used as a temperory storage
+    //get the inverse of the Jacobian as the approximation of Hessian, disturbance is used as a temperory storage
     int status = sgetrf(length, length, hessian, length, disturbance);
     status = sgetri(length, hessian, length, disturbance);
 
@@ -50,65 +54,24 @@ Broyden::Solve(const std::vector<float>& initial)
     for(size_t i = 0; i <  maiximum; ++i)
     {
         //calculate the secant
-        cblas_sgemv (CblasRowMajor, CblasNoTrans, length, length, -1, hessian, 1, current, 1, 0, secant, 1);
+        cblas_sgemv (CblasRowMajor, CblasNoTrans, length, length, -1, hessian, 1, original, 1, 0, secant, 1);
 
-        //update the solution
-        vsAdd(solution, secant, solution);
-
-        //update the value of the functions
-        function(solution, updated);
+        //update the result and calculate the function value
+        vsAdd(scale_, result, secant, result);
+        target_(result, updated, scale_);
 
         //tolerance check
-        if()
+        if(norm(sceant) <  relative_ || norm(updated) < absolute_)
         {
             break;
         }
 
-        //calculate the difference between the current objectives and the updated objectives
-        //and the answer is stored in the current objectives
-        vsSub(updated, current, current);
-
-        //caluclate the increment of the approximation of Hessian matrix
-        status = updater_(increment);
-
-        /*
-        =============================================================================
-        this is the only place where different types of Broyden method differs from the other
-        status = updater(hessian, secant, difference, increment)
-        */
-
-/*
-       //calculate the B_{k}y_{k}, result is stored in the variable increment
-        cblas_sgemv(CblasRowMajor, CblasNoTrans, CblasNoTrans, length, length, 1, hessian, 1, current, 1, 0, increment, 1);
-        //calculating the \mu
-        float factor = 1 + cblas_sdot(length, current, 1, increment, 1) / cblas_dot(length, secant, 1, current, 1);
-
-        //calculate the denominator for the increment
-        float denominator = 1 / cblas_sdot(length, secant, 1, current, 1);
-
-        //calculat the first item in the increment
-        cblas_gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, length, length, 1, factor, secant, denominator, secant, 1, 0, increment, 1);
-
-        //calculate the second item in the increment
-        cblas_gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, length, length, 1, 1, secant, 1, current, 1, 0, temperory, 1);
-        cblas_gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, length, length, length, -1, temperory, denominator, hessian, 1, 1, increment, 1);
-
-        //calculate the third item in the increment
-        cblas_gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, length, length, 1, 1, current, 1, secant, 1, 0, temperory, 1);
-        cblas_gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, length, length, length, -1, hessian, denominator, temperory, 1, 1, increment, 1);
-*/
-        /*
-        difference ends
-        =======================================================
-        */
-
-        //the updated objectives become the current objectives for the next iteration
-        cblas_scopy(length, updated, 1, current, 1);
-
-        //update the approximation of Hessian matrix
-        vsAdd(hessian, increment, hessian)
+        //update the Hessian and assign the new function value to the old one
+        updater_(hessian, secant, original, updated);
     }
 
-    //clear the arrays
-    mkl_free();
+    mkl_free(secant);
+    mkl_free(hessian);
+    mkl_free(original);
+    mkl_free(update);
 };
