@@ -1,4 +1,0 @@
-void ConditionNumber(float** &A)
-{
-
-}

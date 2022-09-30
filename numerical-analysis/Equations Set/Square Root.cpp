@@ -1,5 +1,0 @@
-void SquareRoot(float ** &A)
-{
-
-
-}
