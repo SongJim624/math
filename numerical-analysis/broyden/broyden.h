@@ -18,5 +18,5 @@ public:
     void Solve(const float * initial, float * result);
 
 public:
-    Broyden(std::function<void(const float *, size_t, float *, size_t)>&, size_t, float, float, size_t, size_t);
+    Broyden(std::function<void(const float *, size_t, float *, size_t)>, size_t, float, float, size_t, size_t);
 };

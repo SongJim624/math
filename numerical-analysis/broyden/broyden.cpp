@@ -54,8 +54,7 @@ int Inverse(float* matrix, int scale)
     return status;
 }
 
-
-Broyden::Broyden(std::function<void(const float*, size_t, float*, size_t)>& target, size_t scale, float secant, float value, size_t maximum, size_t code = 0)
+Broyden::Broyden(std::function<void(const float*, size_t, float*, size_t)> target, size_t scale, float secant, float value, size_t maximum, size_t code = 0)
     : target_(target), scale_(scale), maximum_(maximum), secant_(secant), value_(value)
 {
     Updator(code);
