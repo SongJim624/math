@@ -15,20 +15,44 @@ void Jacobian(std::function<void(const float *, size_t, float *, size_t)>& syste
     {
         if (c > 0)
         {
-            left[c - 1] += 0.0000005;
-            right [c - 1] -= 0.0000005;
+            left[c - 1] += 0.000005;
+            right [c - 1] -= 0.000005;
         }
 
-        left[c] -= 0.0000005;
-        right[c] += 0.0000005;
+        left[c] -= 0.000005;
+        right[c] += 0.000005;
 
         system(left, column, before, row);
         system(right, column, after, row);
 
+        /*
+        for (size_t r = 0; r < row; ++r)
+        {
+            for (size_t c = 0; c < column; ++c)
+            {
+                std::cout << before[r * column + c] << "\t";
+            }
+
+            std::cout << std::endl;
+        }
+        */
+
         for(size_t r = 0; r < row; ++r)
         {
-            jacobian[r * column + c] = 1e6 * (after[r] - before[r]);
+            jacobian[r * column + c] = 1e5 * (after[r] - before[r]);
         }
+    }
+
+ 
+    for (size_t r = 0; r < row; ++r)
+    {
+        std::cout << "\n";
+
+        for (size_t c = 0; c < column; ++c)
+        {
+            std::cout << jacobian[r * column + c] << "\t";
+        }
+
     }
 }
 
@@ -73,6 +97,7 @@ void Broyden::Solve(const float * initial, float * result)
 
     //calculate the values and Jacobian at the initial point
     target_(initial, scale_, original, scale_);
+
     Jacobian(target_, scale_, scale_, result, hessian);
 
     //get the inverse of the Jacobian as the approximation of Hessian, disturbance is used as a temperory storage
@@ -80,7 +105,7 @@ void Broyden::Solve(const float * initial, float * result)
 
     
     //iteration
-    for(size_t i = 0; i <  100; ++i)
+    for(size_t i = 0; i <  10000; ++i)
     {
         //calculate the secant
         cblas_sgemv (CblasRowMajor, CblasNoTrans, scale_, scale_, -1, hessian, scale_, original, 1, 0, secant, 1);
@@ -91,12 +116,9 @@ void Broyden::Solve(const float * initial, float * result)
 
         const int incr = 1;
         //tolerance check
-        if(snrm2(&scale_, secant, &incr) <  secant_ && snrm2(&scale_, updated, &incr) < value_)
+        if(snrm2(&scale_, secant, &incr) <  secant_ || snrm2(&scale_, updated, &incr) < value_)
         {
             std::cout << "found!" << std::endl;
-            std::cout << "result[0] : " << result[0] << std::endl;
-            std::cout << "result[1] : " << result[1]  << std::endl;
-
             break;
         }
 
@@ -104,6 +126,7 @@ void Broyden::Solve(const float * initial, float * result)
         updator_(scale_, hessian, secant, original, updated);
     }
 
+//    std::cout << "iteration exceeds the maximum" << std::endl;
     mkl_free(secant);
     mkl_free(hessian);
     mkl_free(original);
