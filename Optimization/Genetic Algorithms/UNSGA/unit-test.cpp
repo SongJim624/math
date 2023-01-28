@@ -1,4 +1,4 @@
-d#include "UNSGA.h"
+#include "UNSGA.h"
 
 class MyFunction : public Function
 {
@@ -12,7 +12,7 @@ class MyFunction : public Function
 		}
 
 		objective[0] = 1 - exp(-objective[0]);
-		
+
 		objective[1] = 0;
 
 		for (long i = 0; i < decision_size; ++i)

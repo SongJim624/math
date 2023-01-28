@@ -2,6 +2,17 @@
 #define _SJML_Optimization_Optimizor_
 #include <vector>
 
+
+
+class Optimizor
+{
+public:
+	virtual void Optimize(std::function<void()> objective);
+
+};
+
+
+
 class Optimizor
 {
 public:

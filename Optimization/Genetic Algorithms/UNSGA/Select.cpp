@@ -1,5 +1,7 @@
 #include "UNSGA.h"
 
+
+//replace with sgesv
 void Doolittle(float ** A, float* b, const long& length)
 {
 	for (long i = 0; i < length; ++i)
@@ -73,33 +75,32 @@ void Doolittle(float ** A, float* b, const long& length)
 	}
 }
 
-float Distance(float * A, float * B, const long& length)
+float Distance(size_t size, const float * A, const float * B)
 {
-	float a = 0, b = 0, c = 0;
-	
-	for (long i = 0; i < length; ++i)
-	{
-		a += A[i] * A[i];
-		b += B[i] * B[i];
-		c += A[i] * B[i];
-	}
+	float * distance = mkl_malloc(size * sizeof(float), 64);
+	vsSub(size, A, B, distance);
+	vsSqr(size, distance, distance)
+	float result = sqrtf(cblas_sasum(size, distance));
 
-	return sqrt(a - c / b);
+	mkl_free(distance);
+	distance = nullptr;
+	return result;
 }
 
-void UNSGA::Ideal_Point(std::list<Individual_UNSGA*>& top)
-{	
+void UNSGA::Ideal_Point(std::list<Individual*>& layer)
+{
 /*
+Notice, the first layer is used to form the ideal points
 * The value of the ideal point is not initialized to the +Infinity
 * because the ideal point is the minimum value of the last iteration
 * only when the value of the current iteration is smaller than the last iteration
-* could the ideal point be updated 
+* could the ideal point be updated
 */
-	for (auto iter : top)
+	for (const auto& individual : layer)
 	{
-		for (long i = 0; i < Individual::objective_size; ++i)
+		for (size_t i = 0; i < Individual::size(); ++i)
 		{
-			ideal[i] = fminf(ideal[i], iter->individual.objectives[i]);
+			ideal[i] = fminf(ideal_[i], iter->individual.objectives()[i]);
 		}
 	}
 }
@@ -109,15 +110,11 @@ void UNSGA::Interception(std::list<Individual_UNSGA*>& bottom)
 	std::vector<float> ASF(Individual::objective_size, +INFINITY);
 	std::vector<Individual_UNSGA*> extreme(Individual::objective_size, nullptr);
 
-    
     float * cost = new float[Individual::objective_size];
     
-	for (auto iter : bottom)
+	for (const auto& individual : bottom)
 	{
-		for (long i = 0; i < Individual::objective_size; ++i)
-		{
-			cost[i] = iter->individual.objectives[i] - ideal[i];
-		}
+		vsSub(Individual::size(), individual.objective(), ideal_, cost);
 
 		for (long i = 0; i < Individual::objective_size; ++i)
 		{
@@ -148,17 +145,16 @@ void UNSGA::Interception(std::list<Individual_UNSGA*>& bottom)
 		}
 	}
 
-	Doolittle(A, interception, Individual::objective_size);
+	int ipiv[Individual::size], info;
+	sgesv(&Individual::size(), 1, matrix_,  Individual::size(), ipiv, interception_, Individual::size(), &info);
 
-	for (long i = 0; i < Individual::objective_size; ++i)
-	{
-		interception[i] = 1.0f / interception[i];
-	}
+	float one = 1;
+	vsDivI(Individual::size(), &one, 0, interception_, 1, interception, 1);
 }
 
-void UNSGA::Associate(std::list<Individual_UNSGA*>& critical)
+void UNSGA::Associate(std::list<Individual*> critical)
 {
-	for (auto& iter : Zr)
+	for (auto& point : Zr)
 	{
 		iter->rho = 0;
 		iter->individuals.clear();
@@ -203,7 +199,7 @@ void UNSGA::Associate(std::list<Individual_UNSGA*>& critical)
 	}
 }
 
-void UNSGA::Niche(std::list<Individual_UNSGA*>& critical)
+void UNSGA::Niche(size_t needed, std::list<Individual_UNSGA*>& critical)
 {
 	long N = total_size / 2 - solution.size();
 
@@ -213,11 +209,10 @@ void UNSGA::Niche(std::list<Individual_UNSGA*>& critical)
 * because the rho would be one after the individual associated with the point pushed into solution
 * the later whose rho is also 0 would become the begin of the list
 */
-
-	for (long i = 0; i < N; ++i)
+	while(needed-- != 0)
 	{
-		Zr.sort(PointCMP());
-		Point* point = *Zr.begin();
+		references_.sort(PointCMP());
+		auto point = *references_.begin();
 		point->individuals.sort(DistanceCMP());
 		solution.push_back(*point->individuals.begin());
 		point->rho++;
@@ -226,19 +221,22 @@ void UNSGA::Niche(std::list<Individual_UNSGA*>& critical)
 	}
 }
 
-void UNSGA::Normalize(std::list<Individual_UNSGA*>& selected)
+void UNSGA::Normalize(std::list<Individual*>& population)
 {
+	float * denominator = mkl_malloc();
+	vsSub(Individual::size(), interception_, ideal_, denominator);
+
 	for (auto& iter : selected)
 	{
-		for (long i = 0; i < Individual::objective_size; ++i) 
-		{
-			iter->individual.objectives[i] -= ideal[i];
-			iter->individual.objectives[i] /= interception[i] - ideal[i];
-		}
+		vsSub(Individual::size(), individual.objective(), ideal_, individual.objective());
+		vsDiv(Individual::size(), individual.objective(), denominator, individual.objective());
 	}
+
+	mkl_free(denominator);
+	denominator = nullptr;
 }
 
-void UNSGA::Select(std::list<Individual_UNSGA*>& critical)
+void UNSGA::Select(std::list<Individual*>& critical)
 {
 	Interception(critical);
 
@@ -251,33 +249,34 @@ void UNSGA::Select(std::list<Individual_UNSGA*>& critical)
 	Niche(critical);
 }
 
-void UNSGA::Select()
+void UNSGA::Select(std::list<Individual*> population)
 {
 	solution.clear();
 
-	std::list<std::list<Individual_UNSGA*>> layers = Sort();
-	
+	std::list<std::list<Individual*>> layers = Sort(population);
+
 	Ideal_Point(*layers.begin());
 
-	while (solution.size() + layers.begin()->size() < total_size / 2)
+	while(true)
 	{
-		solution.insert(solution.end(), layers.begin()->begin(), layers.begin()->end());
+		if(solution.size() + layers.begin()->size() > population.size() / 2)
+		{
+			break;
+		}
+
+		solution.merge(*layers.begin());
 		layers.pop_front();
 	}
 
-	if (solution.size() + layers.begin()->size() > total_size / 2)
+	if (solution.size() != population.size() / 2)
 	{
-		Select(*layers.begin());
-	}
-	else
-	{
-		solution.insert(solution.end(), layers.begin()->begin(), layers.begin()->end());
-		layers.pop_front();
+		Fill(solution, *layers.begin());
+		Select(solution, *layers.begin());
 	}
 
 	while (layers.size() != 0)
 	{
-		extend.insert(extend.end(), layers.begin()->begin(), layers.begin()->end());
+		extend.merge(*layers.begin());
 		layers.pop_front();
 	}
 }

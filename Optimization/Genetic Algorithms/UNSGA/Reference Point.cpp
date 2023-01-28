@@ -1,18 +1,17 @@
 #include "UNSGA.h"
 
-Point::Point(const std::list<float>& coor) 
-	: rho(0), coordinate(new float[Individual::objective_size])
+Point::Point(const std::list<float>& coordinate)
+	: rho(0), coordinate_(nullptr)
 {
-	float* copy = nullptr;
-	copy = coordinate;
+	coordinate_ = mkl_malloc(coordinate.size() * sizeof(float), 64);
 
-	for (auto iter : coor)
+	for (auto iter : coordinate)
 	{
-		*copy++ = iter;
+		*coordinate++ = *iter;
 	}
 };
 
 Point::~Point()
 {
-	delete[] coordinate;
+	mkl_free(coordinate_);
 }

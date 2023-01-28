@@ -10,8 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-
-
+#include <mkl.h>
 
 class Individual_UNSGA
 {
@@ -107,9 +106,24 @@ public:
 class UNSGA
 {
 private:
-	struct Individual
+	class Individual
 	{
-		std::vector<float> decisions;
+	private:
+		static size_t decisions_, objectives_;
+		static float* upper, * lower;
+		static std::function<void(size_t, const float *, size_t, float *)> function_;
+		static std::function<void(size_t, const float *, size_t, float *)> function_;
+
+	private:
+		float * decision_, obejective_, voilate_;
+
+	public:
+		static size_t decisions, objectives;
+
+		void Update(const float * decision);
+		const float * objective() const;
+		float voilate() const;
+
 		std::list<Individual*> dominates;
 		size_t dominated;
 		float distance;
@@ -118,11 +132,28 @@ private:
 	struct Point
 	{
 		std::vector<float> decisions;
-		std::list<Individual *> appendeds;
+		std::list<Individual *> appends;
 	};
 
-private:
+	//reference plain
+	class Reference
+	{
 
+	public:
+		void 
+		void Refresh();
+	};
+
+
+private:
+	std::list<Individual *> population_;
+
+private:
+	void Cross();
+	void Mutate();
+
+	void Select();
+	std::list<std::list<Individual*>> Sort(std::list<Individual*> population);
 
 public:
 	void Optimize();
