@@ -10,47 +10,14 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <memory>
 #include <mkl.h>
 
-class Individual_UNSGA
+struct Information
 {
-public:
-	Individual individual;
-
-	long dominated;
-	std::list<Individual_UNSGA*> dominate;
-
-	float distance;
-
-	Individual_UNSGA();
-	~Individual_UNSGA();
-};
-
-struct DominationCMP
-{
-	bool operator()(Individual_UNSGA* A, Individual_UNSGA* B) const;
-};
-
-struct DistanceCMP
-{
-	bool operator()(Individual_UNSGA* A, Individual_UNSGA* B) const;
-};
-
-//Reference Point
-struct Point
-{
-	float* coordinate;
-	long rho;
-
-	std::list<Individual_UNSGA*> individuals;
-
-	Point(const std::list<float>& coor);
-	~Point();
-};
-
-struct PointCMP
-{
-	bool operator()(Point* A, Point* B) const;
+	size_t decisions, objectives;
+	std::function<void(size_t, const float *, size_t, float *)> objective;
+	std::function<float(const float *)> constraints;
 };
 
 class UNSGA : public Genetic_Algorithm
@@ -106,57 +73,76 @@ public:
 class UNSGA
 {
 private:
-	class Individual
-	{
-	private:
-		static size_t decisions_, objectives_;
-		static float* upper, * lower;
-		static std::function<void(size_t, const float *, size_t, float *)> function_;
-		static std::function<void(size_t, const float *, size_t, float *)> function_;
+	class Individual;
+	class Reference;
 
-	private:
-		float * decision_, obejective_, voilate_;
+	std::unique_ptr<Reference> references_;
 
-	public:
-		static size_t decisions, objectives;
-
-		void Update(const float * decision);
-		const float * objective() const;
-		float voilate() const;
-
-		std::list<Individual*> dominates;
-		size_t dominated;
-		float distance;
-	};
-
-	struct Point
-	{
-		std::vector<float> decisions;
-		std::list<Individual *> appends;
-	};
-
-	//reference plain
-	class Reference
-	{
-
-	public:
-		void 
-		void Refresh();
-	};
-
+	std::list<std::unque_ptr<Individual>> population_;
 
 private:
-	std::list<Individual *> population_;
-
-private:
-	void Cross();
-	void Mutate();
-
-	void Select();
-	std::list<std::list<Individual*>> Sort(std::list<Individual*> population);
+	void Select(std::list<Individual*> population);
+	void Gentic(std::list<Individual*> population);
 
 public:
-	void Optimize();
+	virtual void Optimize();
+
+public:
+	UNSGA(size_t maximum, size_t division);
+	~UNSGA();
 };
 
+class UNSGA::Reference
+{
+private:
+	class Point;
+	std::list<Point *> points_;
+
+public:
+	Reference(size_t objective, size_t division);
+	void Associate(std::list<Individual*>& solution, std::list<Individual*>& critical);
+};
+
+class UNSGA::Reference::Point
+{
+private:
+	static size;
+
+private:
+	size_t count_;
+	float * location_;
+	std::list<Individual*> associated_;
+
+public:
+	Point(const float * location);
+	~Point();
+
+	size_t count() const;
+	//perpendicular distance for a point to the reference line
+	float distance(const float * point);
+
+	void AddReference();
+	void Attach(Individual *);
+	Individual* Detach();
+};
+
+class UNSGA::Individual
+{
+private:
+	size_t decisions_, objectives_;
+	static std::function<void(size_t, const float *, size_t, float)> function_;
+	static float * upper_, * lower_;
+	static bool * integer_;
+
+private:
+	float * decision_, * objective_;
+
+public:
+	void Update(const float * decision);
+	const float * objective() const;
+
+public:
+	static Initialize(size_t, size_t);
+	static Finalize();
+};
 #endif // !_Mathematical_Tools_Optimization_Genetic_Algorithms_UNSGA_

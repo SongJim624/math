@@ -1,15 +1,5 @@
 #include "UNSGA.h"
 
-bool DominationCMP::operator()(Individual_UNSGA* A, Individual_UNSGA* B) const
-{
-	return A->dominated < B->dominated;
-}
-
-bool DistanceCMP::operator()(Individual_UNSGA* A, Individual_UNSGA* B) const
-{
-	return A->distance < B->distance;
-}
-
 bool PointCMP::operator()(Point* A, Point* B) const
 {
 	if (A->individuals.size() == 0 && B->individuals.size())

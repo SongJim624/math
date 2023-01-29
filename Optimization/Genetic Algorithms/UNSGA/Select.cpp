@@ -1,108 +1,218 @@
 #include "UNSGA.h"
 
-
-//replace with sgesv
-void Doolittle(float ** A, float* b, const long& length)
+float distance(size_t size, const float * rhs, const float * lhs)
 {
-	for (long i = 0; i < length; ++i)
-	{
-		A[0][i] = A[0][i];
-		A[i][0] /= A[0][0];
-	}
+	float * dist = mkl_malloc(size * sizeof(float), 64);
+	vsSub(size, lhs, rhs, distance);
+	vsSqr(size, dist, dist)
+	float result = sqrtf(cblas_sasum(size, dist));
 
-	long r = 1;
-	for (; r < length - 1; ++r)
-	{
-		long i = r;
-		float sum = 0.0;
-		for (long k = 0; k < r; ++k)
-		{
-			sum += A[r][k] * A[k][i];
-		}
-		A[r][i] = A[r][i] - sum;
-		++i;
-
-		for (; i < length; ++i)
-		{
-			sum = 0.0;
-			for (size_t k = 0; k < r; ++k)
-			{
-				sum += A[r][k] * A[k][i];
-			}
-
-			A[r][i] -= sum;
-
-			sum = 0;
-			for (size_t k = 0; k < r; ++k)
-			{
-				sum += A[i][k] * A[k][r];
-			}
-
-			A[i][r] = (A[i][r] - sum) / A[r][r];
-		}
-	}
-
-	float sum = 0.0;
-	for (size_t i = 0; i < r; ++i)
-	{
-		sum += A[r][i] * A[i][r];
-	}
-	A[r][r] -= sum;
-
-	for (size_t i = 1; i < length; ++i)
-	{
-		sum = 0;
-
-		for (size_t k = 0; k < i; ++k)
-		{
-			sum += A[i][k] * b[k];
-		}
-
-		b[i] -= sum;
-	}
-
-	b[length - 1] /= A[length - 1][length - 1];
-
-	for (int i = length - 2; i >= 0; --i)
-	{
-		sum = 0.0;
-		for (size_t k = i + 1; k < length; ++k)
-		{
-			sum += A[i][k] * b[k];
-		}
-
-		b[i] = (b[i] - sum) / A[i][i];
-	}
-}
-
-float Distance(size_t size, const float * A, const float * B)
-{
-	float * distance = mkl_malloc(size * sizeof(float), 64);
-	vsSub(size, A, B, distance);
-	vsSqr(size, distance, distance)
-	float result = sqrtf(cblas_sasum(size, distance));
-
-	mkl_free(distance);
-	distance = nullptr;
+	mkl_free(dist);
+	dist = nullptr;
 	return result;
 }
 
-void UNSGA::Ideal_Point(std::list<Individual*>& layer)
+int compare(float lhs, float rhs)
 {
-/*
-Notice, the first layer is used to form the ideal points
-* The value of the ideal point is not initialized to the +Infinity
-* because the ideal point is the minimum value of the last iteration
-* only when the value of the current iteration is smaller than the last iteration
-* could the ideal point be updated
-*/
-	for (const auto& individual : layer)
+	if(fabsf(lhs, rhs) < 1e-9)
 	{
-		for (size_t i = 0; i < Individual::size(); ++i)
+		return 0;
+	}
+
+	if(lhs > rhs)
+	{
+		return 1;
+	}
+
+	return -1;
+}
+
+int dominate(size_t size, const float * lhs, const float * rhs)
+{
+	size_t equal = 0, more = 0, less = 0;
+
+	for(size_t i = 0; i < size; ++i)
+	{
+		switch(compare(lhs[i], rhs[i]))
 		{
-			ideal[i] = fminf(ideal_[i], iter->individual.objectives()[i]);
+		case 0:
+		{
+			equal++;
+			continue;
+		}
+		case 1:
+		{
+			more++;
+			continue;
+		}
+		case -1:
+		{
+			less++;
+			continue;
+		}
 		}
 	}
+
+	if(equal == size)
+	{
+		return 0;
+	}
+
+	if(more == 0)
+	{
+		return 1;
+	}
+
+	if(less == 0)
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+//Non dominated compare
+void compare(size_t size, UNSGA::Individual * lhs, UNSGA::Individual * rhs)
+{
+	if((compare(lhs->voilation(), 0) != 0) && (compare(rhs->voilation()) != 0))
+	{
+		return;
+	}
+
+	if((compare(lhs->voilation(), 0) != 0))
+	{
+		rhs->dominates.push_back(rhs);
+		lrs->dominated++;
+		return;
+	}
+
+	if((compare(rhs->voilation()) != 0))
+	{
+		lhs->dominates.push_back(rhs);
+		hrs->dominated++;
+		return;
+	}
+
+	switch(compare(size, lhs->objective(), rhs->objective()))
+	{
+	case 1:
+	{
+		lhs->dominates.push_back(rhs);
+		hrs->dominated++;
+		return;
+	}
+	case -1
+	{
+		rhs->dominates.push_back(rhs);
+		lrs->dominated++;
+		return;
+	}
+	}
+}
+
+std::list<std::list<UNSGA::Individual*>> Sort(std::list<UNSGA::Individual*>& population)
+{
+	std::list<std::list<Individual*>> results;
+
+	for(auto& individual : population)
+	{
+		for(auto& later = std::next(individual); later != population.end(); ++later)
+		{
+			compare(individual, later);
+		}
+	}
+
+	while(!population.empty())
+	{
+		results.push_back({});
+		population.sort([](Individual* lhs, Individual* rhs){
+			lhs->dominated < rhs->dominated;
+		});
+
+		const auto& location = population.begin();
+		for(location; location != population.end(); ++begin)
+		{
+			if(loaction->dominated != 0)
+			{
+				break;
+			}
+		}
+
+		auto& sequence = results.rebgin();
+		sequence.slice(sequence.end(), population, population.begin(), location);
+
+		for (auto& individual : *results.rbegin())
+		{
+			for (auto& dominate : individual->dominates)
+			{
+				dominate->dominated--;
+			}
+
+			individual->dominates.clear();
+		}
+	}
+
+	return layers;
+};
+
+void Ideal(size_t size, const std::list<UNSGA::Individual*>& individuals, float * ideal)
+{
+	for (const auto& individual : individuals)
+	{
+		for (size_t i = 0; i < size; ++i)
+		{
+			ideal[i] = fminf(ideal[i], individual.objective()[i]);
+		}
+	}
+}
+
+void Interception(size_t size, const std::list<UNSGA::Individual*>& individuals, const float * ideal, float * interception)
+{
+	std::vector<float> ASF(size, +INFINITY);
+	std::vector<Individual*> extreme(size, nullptr);
+	float * cost = mkl_malloc(size * sizeof(float), 64);
+
+	for (const auto& individual : individuals)
+	{
+		vsSub(size, individual.objective(), ideal, cost);
+
+		for (size_t i = 0; i < size; ++i)
+		{
+			float asf = -INFINITY;
+
+			for (size_t i = 0; j < size; ++j)
+			{
+				asf = fmaxf(cost[j] / ((j == i) * 1.0f + (j != i) * 1e-6f), asf);
+			}
+
+			if (ASF[i] > asf)
+			{
+				ASF[i] = asf;
+				extreme[i] = iter;
+			}
+		}
+	}
+
+	mkl_free(cost);
+	cost = nullptr;
+
+	std::fill(interception, interception + size, 1);
+	float * matrix = mkl_malloc(size * size * sizeof(float), 64);
+
+//could be vectorized here
+	for (long i = 0; i < size; ++i)
+	{
+		for (long j = 0; j < Individual::objective_size; ++j)
+		{
+			matrix[(i - 1) * size + j] = extreme[i]->individual.objectives[j];
+		}
+	}
+
+	int ipiv[Individual::size], info;
+	sgesv(&Individual::size(), 1, matrix_,  Individual::size(), ipiv, interception_, Individual::size(), &info);
+
+	float one = 1;
+	vsDivI(Individual::size(), &one, 0, interception_, 1, interception, 1);
 }
 
 void UNSGA::Interception(std::list<Individual_UNSGA*>& bottom)
@@ -111,7 +221,7 @@ void UNSGA::Interception(std::list<Individual_UNSGA*>& bottom)
 	std::vector<Individual_UNSGA*> extreme(Individual::objective_size, nullptr);
 
     float * cost = new float[Individual::objective_size];
-    
+
 	for (const auto& individual : bottom)
 	{
 		vsSub(Individual::size(), individual.objective(), ideal_, cost);
@@ -152,12 +262,14 @@ void UNSGA::Interception(std::list<Individual_UNSGA*>& bottom)
 	vsDivI(Individual::size(), &one, 0, interception_, 1, interception, 1);
 }
 
-void UNSGA::Associate(std::list<Individual*> critical)
+
+Reference::Associate()
+void UNSGA::Associate(Reference& reference, std::list<Individual*> critical)
 {
-	for (auto& point : Zr)
+	for (auto& point : points)
 	{
-		iter->rho = 0;
-		iter->individuals.clear();
+		point->rho = 0;
+		point->associated.clear();
 	}
 
 	for (auto iter : solution)
@@ -167,7 +279,7 @@ void UNSGA::Associate(std::list<Individual*> critical)
 
 		for (auto& it : Zr)
 		{
-			double dis = Distance(iter->individual.objectives, it->coordinate, Individual::objective_size);
+			double dis = distance(size, iter->individual.objectives, it->coordinate, Individual::objective_size);
 
 			if (dis < iter->distance)
 			{
@@ -199,17 +311,16 @@ void UNSGA::Associate(std::list<Individual*> critical)
 	}
 }
 
-void UNSGA::Niche(size_t needed, std::list<Individual_UNSGA*>& critical)
+//this operation should be move to reference class
+void UNSGA::Niche(size_t needed, std::list<UNSGA::Individual*>& solution)
 {
-	long N = total_size / 2 - solution.size();
-
 /*
 * The choice of Zr should be random when the number of the points whose rho equals 0 is larger than one
 * Here the first one of the list is used directly
 * because the rho would be one after the individual associated with the point pushed into solution
 * the later whose rho is also 0 would become the begin of the list
 */
-	while(needed-- != 0)
+	for(size_t i = 0; i < needed, ++i)
 	{
 		references_.sort(PointCMP());
 		auto point = *references_.begin();
@@ -217,7 +328,6 @@ void UNSGA::Niche(size_t needed, std::list<Individual_UNSGA*>& critical)
 		solution.push_back(*point->individuals.begin());
 		point->rho++;
 		point->individuals.pop_front();
-		critical.remove(*solution.rbegin());
 	}
 }
 
@@ -236,7 +346,14 @@ void UNSGA::Normalize(std::list<Individual*>& population)
 	denominator = nullptr;
 }
 
-void UNSGA::Select(std::list<Individual*>& critical)
+
+void Select(size_t size, size dimension, std::list<Individual*>& solution, std::list<Individual*> critical)
+{
+	float * interception;
+	Interception(dimension, );
+}
+
+void UNSGA::Select(size_t needed, std::list<Individual*> critical, std::list<Individual*>& solution)
 {
 	Interception(critical);
 
@@ -246,20 +363,23 @@ void UNSGA::Select(std::list<Individual*>& critical)
 	Associate(solution);
 	Associate(critical);
 
-	Niche(critical);
+	for(size_t i = 0; i < needed; ++i)
+	{
+		reference.->individual;
+		solution.splice(solution.end(), individual);
+	}
 }
 
-void UNSGA::Select(std::list<Individual*> population)
+void UNSGA::Select(std::list<Individual*>& population, std::list<Individual*>& solution)
 {
-	solution.clear();
-
+	size_t selection = population.size() / 2;
+	//after the sort operator, the population is an empty set
 	std::list<std::list<Individual*>> layers = Sort(population);
 
-	Ideal_Point(*layers.begin());
-
+	//move the better individuals into the solution set
 	while(true)
 	{
-		if(solution.size() + layers.begin()->size() > population.size() / 2)
+		if(solution.size() + layers.begin()->size() > selection)
 		{
 			break;
 		}
@@ -268,15 +388,16 @@ void UNSGA::Select(std::list<Individual*> population)
 		layers.pop_front();
 	}
 
+	//Niche technology needed
 	if (solution.size() != population.size() / 2)
 	{
-		Fill(solution, *layers.begin());
-		Select(solution, *layers.begin());
+		Select(selection - solution.size(), *layers.begin(), solution);
 	}
 
+	//nove the left one to the population for cross and mutation operation
 	while (layers.size() != 0)
 	{
-		extend.merge(*layers.begin());
+		population.merge(*layers.begin());
 		layers.pop_front();
 	}
 }

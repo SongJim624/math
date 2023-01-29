@@ -1,87 +1,4 @@
-#include "UNSGA.h"
-
-Individual_UNSGA::Individual_UNSGA()
-	: dominated(0), distance(0)
-{}
-
-Individual_UNSGA::~Individual_UNSGA()
-{}
-
-
-UNSGA::UNGSA(size_t maximum, size_t division)
-{
-
-}
-
-std::vector<std::vector<float>> UNSGA::Optimize(std::function<void(size_t, const float * size_t, float *)>& objective, )
-
-
-UNSGA::UNSGA(Function* function, Constraints* constraints,
-	size_t decisions, size_t objectives, size_t maximum, size_t division, const float * upper, const float * lower, const bool * integer)
-{
-
-	srand((unsigned)time(NULL));
-
-	genetic = new Genetic_Operation(0.5, 0.5);
-	this->function = function;
-	this->constraints = constraints;
-
-	Individual::decision_size = decision_size;
-	Individual::objective_size = objective_size;
-
-	Individual::upper = new float[decision_size];
-	Individual::lower = new float[decision_size];
-	Individual::integer = new bool[decision_size];
-
-	for (long i = 0; i < decision_size; ++i)
-	{
-		Individual::upper[i] = upper[i];
-		Individual::lower[i] = lower[i];
-		Individual::integer[i] = integer[i];
-	}
-
-
-	matrix_ = mkl_malloc(objectives * objectives * sizeof(float), 64);
-	ideal_ = mkl_malloc(objectives * sizeof(float), 64);
-	interception_ = mkl_malloc(objectives * sizeof(float), 64);
-
-/*
-	A = new float* [objective_size];
-	ideal = new float[objective_size];
-	interception = new float[objective_size];
-
-	for (long i = 0; i < objective_size; ++i)
-	{
-		A[i] = new float[objective_size];
-		ideal[i] = +INFINITY;
-	}
-*/
-
-	std::list<std::list<float>> points = Reference(Individual::size(), divisions);
-
-	for (auto iter = points.begin(); iter != points.end(); ++iter)
-	{
-		Zr.push_back(new Point(*iter));
-	}
-
-	total_size = (points.size() % 2 + points.size()) * 2;
-
-	population = std::list<Individual *>((points.size() % 2 + points.size()) * 2, nullptr);
-
-//	individuals = std::vector<Individual_UNSGA*>(total_size, nullptr);
-
-	for (auto& iter : individuals)
-	{
-		iter = new Individual();
-
-		function->function(iter->individual.decisions, iter->individual.decision_size,
-			iter->individual.objectives, iter->individual.objective_size);
-
-		iter->individual.voilate =
-			constraints->constraints(iter->individual.decisions, iter->individual.decision_size,
-				iter->individual.objectives, iter->individual.objective_size);
-	}
-}
+#include "unsga.h"
 
 std::list<std::list<float>> Reference(size_t objectives, size_t divisions)
 {
@@ -108,22 +25,53 @@ std::list<std::list<float>> Reference(size_t objectives, size_t divisions)
 	}
 }
 
+UNSGA::UNSGA(Function* function, Constraints* constraints,
+	size_t decisions, size_t objectives, size_t maximum, size_t division, const float * upper, const float * lower, const bool * integer)
+{
+
+	srand((unsigned)time(NULL));
+
+	genetic = new Genetic_Operation(0.5, 0.5);
+	this->function = function;
+	this->constraints = constraints;
+
+	Individual::decision_size = decision_size;
+	Individual::objective_size = objective_size;
+
+	Individual::upper = new float[decision_size];
+	Individual::lower = new float[decision_size];
+	Individual::integer = new bool[decision_size];
+
+	for (long i = 0; i < decision_size; ++i)
+	{
+		Individual::upper[i] = upper[i];
+		Individual::lower[i] = lower[i];
+		Individual::integer[i] = integer[i];
+	}
+
+//	matrix_ = mkl_malloc(objectives * objectives * sizeof(float), 64);
+//	ideal_ = mkl_malloc(objectives * sizeof(float), 64);
+//	interception_ = mkl_malloc(objectives * sizeof(float), 64);
+
+	for (auto& iter : Reference(Individual::size(), divisions))
+	{
+		Zr.push_back(new Point(*iter));
+	}
+
+	for(size_t i = 0; i < (points.size() % 2 + points.size()) * 2; ++i)
+	{
+		population.push_back(new Individual());
+	}
+}
+
 void UNSGA::Optimize(const char* results_path)
 {
+	std::list<Individual*> population;
+
 	for (size_t generation = 0; generation < maximum_; ++generation)
 	{
-		Select();
-		Genetic();
-
-		for (auto iter : individuals)
-		{
-			function->function(iter->individual.decisions, iter->individual.decision_size,
-				iter->individual.objectives, iter->individual.objective_size);
-
-			iter->individual.voilate =
-				constraints->constraints(iter->individual.decisions, iter->individual.decision_size,
-					iter->individual.objectives, iter->individual.objective_size);
-		}
+		Select(population_);
+		Genetic(population);
 	}
 
 	if (results_path)
@@ -135,7 +83,7 @@ void UNSGA::Optimize(const char* results_path)
 void UNSGA::Write(const char* results_path)
 {
 	std::ofstream file(results_path);
-	
+
 	for (auto iter : solution)
 	{
 		for (long i = 0; i < Individual::decision_size; ++i)
@@ -152,7 +100,7 @@ void UNSGA::Write(const char* results_path)
 	}
 }
 
-void UNSGA::Genetic()
+void UNSGA::Genetic(std::list<Individual*>& population)
 {
 	auto iter = solution.begin();
 
