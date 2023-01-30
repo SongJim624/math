@@ -96,13 +96,11 @@ void Interception(const std::list<Individual*>& solution, size_t objectives, con
 	vsDivI(Individual::size(), &one, 0, interception_, 1, interception, 1);
 }
 
-std::pair<std::map<Individual*, float*>, std::map<Individual*, float*>> UNSGA::Reference::Normalize(const std::list<Individual*> solution, const std::list<Individual*>& critical, float* costs)
+std::pair<std::map<UNSGA::Individual*, float*>, std::map<UNSGA::Individual*, float*>> UNSGA::Reference::Normalize(const std::list<Individual*> solution, const std::list<Individual*>& critical, float* costs)
 {
     size_t size;
     float* ideal = (float*)mkl_malloc(size * sizeof(float), 64);
     float* interception = (float*)mkl_malloc(size * sizeof(float), 64);
-
-
 
 
     std::pair<std::map<Individual*, float*>, std::map<Individual*, float*>> result;
@@ -118,7 +116,7 @@ std::pair<std::map<Individual*, float*>, std::map<Individual*, float*>> UNSGA::R
 
     for (const auto& individual : critical)
     {
-        vsSub(size, individual->objective(), ideal, costs);
+        vsSub(size, individual->objectives(), ideal, costs);
         vsDiv(size, costs, interception, costs);
         result.second.insert({ individual, costs });
 

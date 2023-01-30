@@ -60,39 +60,39 @@ int dominate(size_t size, const float * lhs, const float * rhs)
 }
 
 //Non dominated compare
-void UNSGA::Dominate(size_t size, const Individual& lhs, const Individual& rhs)
+void UNSGA::Dominate(size_t size, Individual* lhs, Individual* rhs)
 {
-	if((compare(lhs.voilation(), 0) != 0) && (compare(rhs.voilation()) != 0))
+	if((compare(lhs->voilation, 0) != 0) && (compare(rhs->voilation, 0) != 0))
 	{
 		return;
 	}
 
-	if((compare(lhs.voilation(), 0) != 0))
+	if((compare(lhs->voilation, 0) != 0))
 	{
-		rhs.dominates.push_back(rhs);
-		lrs.dominated++;
+		rhs->dominates.push_back(rhs);
+		lhs->dominated++;
 		return;
 	}
 
-	if((compare(rhs.voilation()) != 0))
+	if((compare(rhs->voilation, 0) != 0))
 	{
-		lhs.dominates.push_back(rhs);
-		hrs.dominated++;
+		lhs->dominates.push_back(rhs);
+		rhs->dominated++;
 		return;
 	}
 
-	switch(compare(size, lhs->objective(), rhs->objective()))
+	switch(dominate(size, lhs->objectives(), rhs->objectives()))
 	{
 	case 1:
 	{
 		lhs->dominates.push_back(rhs);
-		hrs->dominated++;
+		rhs->dominated++;
 		return;
 	}
-	case -1
+	case -1:
 	{
 		rhs->dominates.push_back(rhs);
-		lrs->dominated++;
+		lhs->dominated++;
 		return;
 	}
 	}
@@ -106,7 +106,7 @@ std::list<std::list<UNSGA::Individual*>> UNSGA::Sort(std::list<Individual*>& pop
 	{
 		for(auto later = std::next(individual); later != population.end(); ++later)
 		{
-			Dominate(information_->objective(), **individual, **later);
+			Dominate(information_->objective(), *individual, *later);
 		}
 	}
 

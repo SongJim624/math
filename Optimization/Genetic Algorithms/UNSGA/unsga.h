@@ -23,7 +23,7 @@ private:
 	std::unique_ptr<Reproducor> reproducor_;
 
 private:
-	void Dominate(size_t size, const Individual& lhs, const Individual& rhs);
+	void Dominate(size_t size, Individual* lhs, Individual* rhs);
 	std::list<std::list<Individual*>> Sort(std::list<Individual*>& population);
 	void Select(Reference& plain, std::list<Individual*>& solution, std::list<Individual*>& population);
 
@@ -84,9 +84,11 @@ public:
 
 	const float* objectives() const;
 	const float* decisions() const;
+
 public:
 	size_t dominated;
 	std::list<Individual*> dominates;
+	float voilation;
 };
 
 class UNSGA::Reproducor : public Genetic::Reproductor
