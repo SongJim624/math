@@ -1,148 +1,118 @@
 #ifndef _Mathematical_Tools_Optimization_Genetic_Algorithms_UNSGA_
 #define _Mathematical_Tools_Optimization_Genetic_Algorithms_UNSGA_
 
-#include "../Genetic Algorithms.h"
-#include "Genetic Operation.h"
-#include <list>
-#include <vector>
-#include <map>
+#include "../genetic-algorithms.h"
 #include <time.h>
-#include <iostream>
-#include <fstream>
-#include <string>
+#include <list>
+#include <map>
+#include <algorithm>
 #include <memory>
 #include <mkl.h>
 
-struct Information
-{
-	size_t decisions, objectives;
-	std::function<void(size_t, const float *, size_t, float *)> objective;
-	std::function<float(const float *)> constraints;
-};
-
-class UNSGA : public Genetic_Algorithm
+class UNSGA : public Genetic
 {
 private:
-	const long generation;
-	long total_size;
-
-//Reference Plane
-	std::list<Point*> Zr;
-//Population
-	std::vector<Individual_UNSGA*> individuals;
-
-	double mu, mum;
-
-	std::list<Individual_UNSGA*> solution, extend;
-
-//Matrix used when getting the hyperplane
-	float** A;
-	float* ideal, * interception;
-
-private:
-	void Write(const char* results_path);
-
-private:
-	std::list<std::list<float>> Reference(const long& M, const long& N);
-	void Normalize(std::list<Individual_UNSGA*>& selected);
-
-private:
-	void Ideal_Point(std::list<Individual_UNSGA*>& top);
-	void Interception(std::list<Individual_UNSGA*>& bottom);
-	void Associate(std::list<Individual_UNSGA*>& selected);
-	void Niche(std::list<Individual_UNSGA*>& critical);
-private:
-//Non-dominate Sort
-	std::list<std::list<Individual_UNSGA*>> Sort();
-
-//Select from the critical layer
-	void Select(std::list<Individual_UNSGA*>& critical);
-
-//The whole select operation
-	void Select();
-	void Genetic();
-public:
-	UNSGA(Function* function, Constraints* constraints, 
-		const long& generation, const long decision_size, const long& objective_size, const long& nDiv, 
-		float* upper, float* lower, bool* integer);
-	~UNSGA();
-
-	virtual void Optimize(const char* results_path = nullptr);
-};
-
-class UNSGA
-{
-private:
+	struct Configuration;
 	class Individual;
 	class Reference;
-
-	std::unique_ptr<Reference> references_;
-
-	std::list<std::unque_ptr<Individual>> population_;
+	class Reproducor;
 
 private:
-	void Select(std::list<Individual*> population);
-	void Gentic(std::list<Individual*> population);
+	std::unique_ptr<Configuration> configuration_;
+	std::list<Individual*> population_;
+	std::unique_ptr<Reproducor> reproducor_;
+
+private:
+	void Dominate(size_t size, const Individual& lhs, const Individual& rhs);
+	std::list<std::list<Individual*>> Sort(std::list<Individual*>& population);
+	void Select(Reference& plain, std::list<Individual*>& solution, std::list<Individual*>& population);
 
 public:
-	virtual void Optimize();
+	virtual std::vector<std::vector<float>> Optimize(Information * information);
 
 public:
-	UNSGA(size_t maximum, size_t division);
+	UNSGA(const Configuration& configuration);
 	~UNSGA();
 };
 
 class UNSGA::Reference
 {
 private:
+	static Information* information_;
+	
+private:	
 	class Point;
 	std::list<Point *> points_;
 
+private:
+	void Ideal(const std::list<Individual*>& individuals, float* ideal);
+	void Associate(const std::pair<std::map<Individual*, float *>, std::map<Individual*, float*>>& costs);
+	std::pair<std::map<Individual*, float*>, std::map<Individual*, float*>> Normalize(const std::list<Individual*> solution, const std::list<Individual*>& critical, float * costs);
+
 public:
 	Reference(size_t objective, size_t division);
-	void Associate(std::list<Individual*>& solution, std::list<Individual*>& critical);
+	~Reference();
+
+public:
+	void Niche(size_t needed, std::list<Individual*>& solution, std::list<Individual*>& critical);
 };
 
 class UNSGA::Reference::Point
 {
 private:
-	static size;
-
-private:
-	size_t count_;
 	float * location_;
-	std::list<Individual*> associated_;
+	std::map<float, Individual*> associated_;
+
+public:
+	size_t count;
+	std::list<Individual*> associated;
 
 public:
 	Point(const float * location);
+	Point(const std::list<float>& location);
 	~Point();
 
-	size_t count() const;
 	//perpendicular distance for a point to the reference line
-	float distance(const float * point);
-
-	void AddReference();
-	void Attach(Individual *);
-	Individual* Detach();
+	float distance(const float * point) const;
 };
 
-class UNSGA::Individual
+class UNSGA::Individual : public Genetic::Individual
+{
+public:
+	float* decisions();
+	float* objectives();
+
+	const float* objectives() const;
+	const float* decisions() const;
+public:
+	size_t dominated;
+	std::list<Individual*> dominates;
+};
+
+class UNSGA::Reproducor : public Genetic::Reproductor
 {
 private:
-	size_t decisions_, objectives_;
-	static std::function<void(size_t, const float *, size_t, float)> function_;
-	static float * upper_, * lower_;
-	static bool * integer_;
+	static VSLStreamStatePtr stream_;
 
 private:
-	float * decision_, * objective_;
+	float cross_, mutation_, threshold_;
+
+private:
+	void Cross(const Individual& father, const Individual& mother, Individual& son, Individual& daughter);
+	void Mutate(Individual& individual);
+	void check(Individual& individual);
 
 public:
-	void Update(const float * decision);
-	const float * objective() const;
+	virtual void Reproduce(std::list<Individual*>& solution, std::list<Individual*>& population);
 
 public:
-	static Initialize(size_t, size_t);
-	static Finalize();
+	static void Initialize(VSLStreamStatePtr stream);
+	static void Finalize();
+};
+
+struct UNSGA::Configuration
+{
+	size_t maximum;
+	size_t division;
 };
 #endif // !_Mathematical_Tools_Optimization_Genetic_Algorithms_UNSGA_
