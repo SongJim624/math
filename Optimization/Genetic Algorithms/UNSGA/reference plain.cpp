@@ -86,7 +86,7 @@ void UNSGA::Reference::Ideal(const std::list<Individual*>& individuals, float* i
 {
     for(const auto& individual : individuals)
     {
-        for(size_t i = 0; i < size, ++i)
+        for(size_t i = 0; i < objectives_; ++i)
         {
             ideal[i] = fminf(ideal[i], individual->objective()[i]);
         }

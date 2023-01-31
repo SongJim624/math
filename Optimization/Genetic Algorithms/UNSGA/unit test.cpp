@@ -1,4 +1,4 @@
-#include "UNSGA.h"
+//#include "UNSGA.h"
 #include <iostream>
 #include <fstream>
 
@@ -44,18 +44,20 @@ public:
 	}
 };
 
+
+
 void main()
 {
-	std::unique_ptr<Information> information = std::make_unique<Function>();
+//	std::unique_ptr<Information> information = std::make_unique<Function>();
 
 //	float* lower = new float[2]{ -1.0, -1.0 };
 //	float* upper = new float[2]{ 1.0, 1.0 };
 //	bool* integer = new bool[2]{ false, false };
 
-	std::unique_ptr<Optimizer> optimizer = std::make_unique<UNSGA>(function, constraints, 100, 2, 2, 100, upper, lower, integer);
+//	std::unique_ptr<Optimizer> optimizer = std::make_unique<UNSGA>(function, constraints, 100, 2, 2, 100, upper, lower, integer);
 
 	clock_t begin = clock();
-	optimizer->Optimize(information.get());
+//	optimizer->Optimize(information.get());
 	clock_t end = clock();
 
 	std::cout << float(end - begin) / 1000 << std::endl;
