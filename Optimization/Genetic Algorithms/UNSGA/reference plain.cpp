@@ -61,17 +61,18 @@ float Scale(size_t size, size_t dimension, const float * objective)
     return *result;
 }
 
-void Interception(const std::list<Individual*>& solution, size_t objectives, const float * ideal, const float * cost, float * interception)
+void UNSGA::Reference::Interception(const std::list<Individual*>& solution, const float * ideal, float * interception)
 {
-    std::vector<Individual*> extremes(objectives, nullptr);
-    std::vector<float> minimums(objectives, +INFINITY);
-    float * matrix = (float *) mkl_malloc(objectives * objectives * sizeof(float), 64);
+    std::vector<Individual*> extremes(objectives_, nullptr);
+    std::vector<float> minimums(objectives_, +INFINITY);
+    float * matrix = (float *) mkl_malloc(objectives_ * objectives * sizeof(float), 64);
 
 	for (const auto& individual : solution)
 	{
-		for (size_t objective = 0; objective < objectives; ++objective)
+		for (size_t objective = 0; objective < objectives_; ++objective)
 		{
-            float asf = Scale(objectives, objective, cost);
+            vsSub(dimension_, individual->objectives, ideal, matrix)
+            float asf = Scale(objectives_, objective, matrix);
 
 			if (minimums[objective] > asf)
 			{
@@ -79,13 +80,13 @@ void Interception(const std::list<Individual*>& solution, size_t objectives, con
 				extremes[objective] = *individual;
 			}
 		}
-        cost += objectives;
+        cost += objectives_;
 	}
 
-    std::fill(interception, interception + objectives, 1);
+    std::fill(interception, interception + objectives_, 1);
     for(const auto& individual : extremes)
     {
-        vsSub(objectives, individual->objective(), ideal, matrix);
+        vsSub(objectives, cost, ideal, matrix);
         matrix += objectives;
     }
 
@@ -96,19 +97,17 @@ void Interception(const std::list<Individual*>& solution, size_t objectives, con
 	vsDivI(Individual::size(), &one, 0, interception_, 1, interception, 1);
 }
 
-std::pair<std::map<UNSGA::Individual*, float*>, std::map<UNSGA::Individual*, float*>> UNSGA::Reference::Normalize(const std::list<Individual*> solution, const std::list<Individual*>& critical, float* costs)
+UNSGA::Reference::Cost UNSGA::Reference::Normalize(const std::list<Individual*> solution, const std::list<Individual*>& critical, float* costs)
 {
-    size_t size;
-    float* ideal = (float*)mkl_malloc(size * sizeof(float), 64);
-    float* interception = (float*)mkl_malloc(size * sizeof(float), 64);
+    float * ideal = Ideal(solution);
+    float * interception = Ideal(solution, ideal);
 
-
-    std::pair<std::map<Individual*, float*>, std::map<Individual*, float*>> result;
+    Cost result({{}, {}});
 
     for(const auto& individual : solution)
     {
-        vsSub(size, individual->objective(), ideal, costs);
-        vsDiv(size, costs, interception, costs);
+        vsSub(objectives_, individual->objectives, ideal, costs);
+        vsDiv(objectives_, costs, interception, costs);
         result.first.insert({ individual, costs });
 
         costs += size;
@@ -182,7 +181,7 @@ void UNSGA::Reference::Associate(const std::pair<std::map<Individual*, float*>, 
     }
 }
 
-void UNSGA::Reference::Niche(size_t needed, std::list<UNSGA::Individual*>& solution, std::list<Individual*>& ciritical)
+void UNSGA::Reference::Dispense(size_t needed, std::list<UNSGA::Individual*>& solution, std::list<Individual*>& ciritical)
 {
     /*
     * The choice of Zr should be random when the number of the points whose rho equals 0 is larger than one
@@ -206,4 +205,15 @@ void UNSGA::Reference::Niche(size_t needed, std::list<UNSGA::Individual*>& solut
         solution.splice(solution.end(), (*points_.begin())->associated, (*points_.begin())->associated.begin());
         (*points_.begin())->count++;
     }
+}
+
+void UNSGA::Reference::Niche(size_t needed, std::list<UNSGA::Individual*>& solution, std::list<Individual*>& ciritical)
+{
+    float  * costs = (float *) mkl_malloc((solution.size() + critical.size()) *  objectives_ * sizeof(float), 64);
+
+    Associate(Normalize(solution, critical, costs));
+    Despense(needed, solution, critical);
+
+    mkl_free(costs);
+    costs = nullptr;
 }

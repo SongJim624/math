@@ -1,7 +1,7 @@
 #ifndef _Mathematical_Tools_Optimization_Genetic_Algorithms_UNSGA_
 #define _Mathematical_Tools_Optimization_Genetic_Algorithms_UNSGA_
 
-#include "../genetic-algorithms.h"
+#include "../genetic algorithms.h"
 #include <time.h>
 #include <list>
 #include <map>
@@ -13,9 +13,11 @@ class UNSGA : public Genetic
 {
 private:
 	struct Configuration;
-	class Individual;
+	class Population;
 	class Reference;
-	class Reproducor;
+
+//	class Individual;
+//	class Reproducor;
 
 private:
 	std::unique_ptr<Configuration> configuration_;
@@ -38,16 +40,20 @@ public:
 class UNSGA::Reference
 {
 private:
-	static Information* information_;
-	
-private:	
+typedef std::pair<std::map<Individual*, float *>, std::map<Individual*, float *>> Cost;
 	class Point;
+
+private:
+	size_t objectives_;
 	std::list<Point *> points_;
 
 private:
-	void Ideal(const std::list<Individual*>& individuals, float* ideal);
-	void Associate(const std::pair<std::map<Individual*, float *>, std::map<Individual*, float*>>& costs);
-	std::pair<std::map<Individual*, float*>, std::map<Individual*, float*>> Normalize(const std::list<Individual*> solution, const std::list<Individual*>& critical, float * costs);
+//the functions are not that rigid because the memory applied in Ideal and Interception are released in Normalize.
+	float * Ideal(const std::list<Individual*>& individuals);
+	float * Interception(const std::list<Individual*>& individuals, const float * ideal, const float * costs);
+	Cost Normalize(const std::list<Individual*> solution, const std::list<Individual*>& critical, float * costs);
+	void Associate(const Cost& costs);
+	void Dispense(size_t needed, std::list<Individual*>& solution, std::list<Individual*>& critical);
 
 public:
 	Reference(size_t objective, size_t division);
