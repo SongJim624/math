@@ -1,5 +1,52 @@
 #include "unsga.h"
 
+size_t Combination(size_t dimension, size_t division)
+{
+    dimension += division - 1;
+    division = std::min(division, dimension - division);
+    size_t result = 1;
+
+    for(size_t i = 0; i < division; ++i)
+    {
+        result *= dimension - i;
+    }
+
+    for(size_t i = 0; i < division; ++i)
+    {
+        result /= division - i;
+    }
+
+    return result;
+}
+
+void Plain(size_t dimension, size_t division, float ** points)
+{
+    if(dimension == 1)
+    {
+        **points = division;
+    }
+    else
+    {
+        for(size_t i = 0; i < division + 1; ++i)
+        {
+            size_t amount = Combination(dimension - 1, division - i);
+            float ** selected = new float *[amount];
+
+            for(size_t point = 0; i < amount; point++)
+            {
+                (*point)[0] = i;
+                selected[i] = (*point) + 1;
+                point++;
+            }
+
+            Plain(dimension - 1, division - i, selected);
+
+            delete[] selected;
+            selected = nullptr;
+        }
+    }
+}
+
 std::list<std::list<size_t>> Plain(size_t objectives, size_t division)
 {
     if(objectives == 1)
@@ -27,7 +74,6 @@ std::list<std::list<size_t>> Plain(size_t objectives, size_t division)
 
 UNSGA::Reference::Reference(size_t objectives, size_t division)
 {
-//need to convert to the vector, and scaled by 1/ N
     std::list<std::list<size_t>> plain = Plain(objectives, division);
 
     for(const auto& point : plain)
