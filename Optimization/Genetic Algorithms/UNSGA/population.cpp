@@ -5,27 +5,28 @@ UNSGA::Population::Population(std::shared_ptr<Configuration> configuration)
 {
 	for (const auto& decisions : configuration->initialization)
 	{
-		population_.push_back(new Individual(configuration, &decisions[0]));
+		individuals_.push_back(std::make_unique<Individual>(configuration, &decisions[0]));
 	}
 
 	for (size_t i = 0; i < configuration->population - configuration->initialization.size(); ++i)
 	{
-		population_.push_back(new Individual(configuration));
+		individuals_.push_back(std::make_unique<Individual>(configuration));
+	}
+
+
+	for (auto& individual : individuals_)
+	{
+		population_.push_back(individual.get());
 	}
 }
 
 UNSGA::Population::~Population()
 {
-	for (auto& individual : population_)
-	{
-		delete individual;
-		individual = nullptr;
-	}
 }
 
 void UNSGA::Population::fitness(Individual* individual)
 {
-	configuration_->objective->function(individual->decisions, individual->objectives, &individual->penalty);
+	configuration_->objective->function(&individual->decisions[0], &individual->objectives[0], &individual->penalty);
 }
 
 std::list<std::list<UNSGA::Individual*>> UNSGA::Population::sort()

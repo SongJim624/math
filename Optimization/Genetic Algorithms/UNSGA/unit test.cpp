@@ -82,6 +82,7 @@ void main()
 
 	configuration.population = 500;
 	configuration.division = 10;
+	configuration.maximum = 100;
 
 	configuration.dimension = 2;
 	configuration.scale = 2;

@@ -1,6 +1,7 @@
 #include "unsga.h"
 
 UNSGA::Reproducor::Reproducor(std::shared_ptr<Configuration> configuration)
+	: configuration_(configuration)
 {
 }
 
@@ -12,10 +13,12 @@ void UNSGA::Reproducor::Cross(const Individual& father, const Individual& mother
 {
 	size_t scale = configuration_->scale;
 
-	float* random = (float*)mkl_malloc(scale * sizeof(float), 64);
-	float* weights = (float*)mkl_malloc(scale * sizeof(float), 64);
+//	std::vector<float, UNSGA::Allocator<float>> random(scale);
+//	std::vector<float, UNSGA::Allocator<float>> random(scale);
+	std::vector<float> random(scale);
+	std::vector<float> weights(scale);
 
-	vsRngUniform(VSL_RNG_METHOD_UNIFORM_STD, configuration_->stream, scale, random, 0, 1);
+	vsRngUniform(VSL_RNG_METHOD_UNIFORM_STD, configuration_->stream, scale, &random[0], 0, 1);
 
 	for (long i = 0; i < scale; ++i)
 	{
@@ -23,28 +26,28 @@ void UNSGA::Reproducor::Cross(const Individual& father, const Individual& mother
 	}
 
 	float coefficient = 1 / (configuration_->cross + 1);
-	vsPowI(scale, random, 1, &coefficient, 0, random, 1);
+	vsPowI(scale, &random[0], 1, &coefficient, 0, &random[0], 1);
 
 	coefficient = 1;
-	vsAddI(scale, &coefficient, 0, random, 1, weights, 1);
-	vsMul(scale, weights, father.decisions, son.decisions);
-	vsSubI(scale, &coefficient, 0, random, 1, weights, 1);
-	vsMul(scale, weights, mother.decisions, weights);
-	vsAdd(scale, weights, son.decisions, son.decisions);
+	vsAddI(scale, &coefficient, 0, &random[0], 1, &weights[0], 1);
+	vsMul(scale, &weights[0], &father.decisions[0], &son.decisions[0]);
+	vsSubI(scale, &coefficient, 0, &random[0], 1, &weights[0], 1);
+	vsMul(scale, &weights[0], &mother.decisions[0], &weights[0]);
+	vsAdd(scale, &weights[0], &son.decisions[0], &son.decisions[0]);
 
-	vsSubI(scale, &coefficient, 0, random, 1, weights, 1);
-	vsMul(scale, weights, father.decisions, daughter.decisions);
-	vsAddI(scale, &coefficient, 0, random, 1, weights, 1);
-	vsMul(scale, weights, mother.decisions, weights);
-	vsAdd(scale, weights, daughter.decisions, son.decisions);
+	vsSubI(scale, &coefficient, 0, &random[0], 1, &weights[0], 1);
+	vsMul(scale, &weights[0], &father.decisions[0], &daughter.decisions[0]);
+	vsAddI(scale, &coefficient, 0, &random[0], 1, &weights[0], 1);
+	vsMul(scale, &weights[0], &mother.decisions[0], &weights[0]);
+	vsAdd(scale, &weights[0], &daughter.decisions[0], &son.decisions[0]);
 
-	cblas_sscal(scale, 0.5, son.decisions, 1);
-	cblas_sscal(scale, 0.5, daughter.decisions, 1);
+	cblas_sscal(scale, 0.5, &son.decisions[0], 1);
+	cblas_sscal(scale, 0.5, &daughter.decisions[0], 1);
 
-	mkl_free(random);
-	mkl_free(weights);
-	random = nullptr;
-	weights = nullptr;
+//	mkl_free(random);
+//	mkl_free(weights);
+//	random = nullptr;
+//	weights = nullptr;
 }
 
 //Polynomial Mutation
@@ -52,13 +55,11 @@ void UNSGA::Reproducor::Mutate(Individual& individual)
 {
 	size_t scale = configuration_->scale;
 
-//	size_t decisions = information_->decision();
+//	std::vector<float, UNSGA::Allocator<float>> random(scale);
+	std::vector<float> random(scale);
+	std::vector<bool> labels(scale, false);
 
-	float* random = (float *) mkl_malloc(scale * sizeof(float), 64);
-	bool* labels = (bool*)mkl_malloc(scale * sizeof(bool), 64);
-
-	std::fill(labels, labels + configuration_->scale, false);
-	vsRngUniform(VSL_RNG_METHOD_UNIFORM_STD, configuration_->stream, scale, random, 0, 1);
+	vsRngUniform(VSL_RNG_METHOD_UNIFORM_STD, configuration_->stream, scale, &random[0], 0, 1);
 
 	for (size_t i = 0; i < scale; ++i)
 	{
@@ -69,11 +70,11 @@ void UNSGA::Reproducor::Mutate(Individual& individual)
 		}
 	}
 
-	cblas_sscal(scale, 2, random, 1);
+	cblas_sscal(scale, 2, &random[0], 1);
 	float coefficeint = 1 / (configuration_->mutation + 1);
-	vsPowI(scale, random, 1, &coefficeint, 0, random, 1);
+	vsPowI(scale, &random[0], 1, &coefficeint, 0, &random[0], 1);
 	coefficeint = 1;
-	vsSubI(scale, random, 1, &coefficeint, 0, random, 1);
+	vsSubI(scale, &random[0], 1, &coefficeint, 0, &random[0], 1);
 
 	for (size_t i = 0; i < scale; ++i)
 	{
@@ -83,14 +84,14 @@ void UNSGA::Reproducor::Mutate(Individual& individual)
 		}
 	}
 
-	vsSub(scale, configuration_->objective->upper(), configuration_->objective->lower(), individual.decisions);
-	vsMul(scale, random, individual.decisions, random);
-	vsAdd(scale, random, configuration_->objective->lower(), individual.decisions);
+	vsSub(scale, configuration_->objective->upper(), configuration_->objective->lower(), &individual.decisions[0]);
+	vsMul(scale, &random[0], &individual.decisions[0], &random[0]);
+	vsAdd(scale, &random[0], configuration_->objective->lower(), &individual.decisions[0]);
 
-	mkl_free(random);
-	mkl_free(labels);
-	random = nullptr;
-	labels = nullptr;
+//	mkl_free(random);
+//	mkl_free(labels);
+//	random = nullptr;
+//	labels = nullptr;
 }
 
 //this function is to correct the values if the integer constraints applied

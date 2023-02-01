@@ -32,10 +32,10 @@ void Plain(size_t dimension, size_t division, float ** points)
             size_t amount = Combination(dimension - 1, division - i);
             float ** selected = new float *[amount];
 
-            for(size_t i = 0; i < amount; ++i)
+            for(size_t j = 0; j < amount; ++j)
             {
                 (*points)[0] = i;
-                selected[i] = (*points) + 1;
+                selected[j] = (*points) + 1;
                 points++;
             }
 
@@ -77,22 +77,21 @@ UNSGA::Reference::Reference(std::shared_ptr<Configuration> configuration)
 {
     size_t amount = Combination(configuration_->dimension, configuration_->division);
     locations_ = (float*)mkl_malloc(amount * configuration_->dimension * sizeof(float), 64);
-    float** locations = new float* [amount];
+    
+    std::vector<float*> locations(amount, nullptr);
 
     for (size_t i = 0; i < amount; ++i)
     {
         locations[i] = locations_ + i * configuration_->dimension;
     }
 
-    Plain(configuration_->dimension, configuration_->division, locations);
-
+    Plain(configuration_->dimension, configuration_->division, &locations[0]);
+    cblas_sscal(amount * configuration_->dimension, 1.0 / configuration_->division, locations_, 1);
+   
     for (size_t i = 0; i < amount; ++i)
     {
         points_.push_back(new Point(locations[i], configuration_));
     }
-
-    delete[] locations;
-    locations = nullptr;
 }
 
 UNSGA::Reference::~Reference()
@@ -121,15 +120,13 @@ void UNSGA::Reference::Ideal(const std::list<Individual*>& individuals, float* i
 //achievement scalar function
 float Scale(size_t size, size_t dimension, const float * objective)
 {
-    float * weights = (float *) mkl_malloc(size * sizeof(float), 64);
-    std::fill(weights, weights + size, 1e-6);
+    std::vector<float> weights(size, 1e-6);
+    
+    std::fill(weights.begin(), weights.end(), 1e-6);
     weights[dimension] = 1;
 
-    vsDiv(size, objective, weights, weights);
-    float* result = std::max_element(weights, weights + size);
-
-    mkl_free(weights);
-    return *result;
+    vsDiv(size, objective, &weights[0], &weights[0]);
+    return *std::max_element(weights.begin(), weights.end());
 }
 
 void UNSGA::Reference::Interception(const std::list<Individual*>& solution, const float * ideal, float * interception)
@@ -138,14 +135,14 @@ void UNSGA::Reference::Interception(const std::list<Individual*>& solution, cons
 
     std::vector<Individual*> extremes(dimension, nullptr);
     std::vector<float> minimums(dimension, +INFINITY);
-    float * matrix = (float *) mkl_malloc(dimension * dimension * sizeof(float), 64);
+    std::vector<float> matrix(dimension * dimension);
 
 	for (auto individual : solution)
 	{
 		for (size_t objective = 0; objective < dimension; ++objective)
 		{
-            vsSub(dimension, individual->objectives, ideal, matrix);
-            float asf = Scale(dimension, objective, matrix);
+            vsSub(dimension, &individual->objectives[0], ideal, &matrix[0]);
+            float asf = Scale(dimension, objective, &matrix[0]);
 
 			if (minimums[objective] > asf)
 			{
@@ -156,15 +153,17 @@ void UNSGA::Reference::Interception(const std::list<Individual*>& solution, cons
 	}
 
     std::fill(interception, interception + dimension, 1);
+    
+    auto row = matrix.begin();
     for(const auto& individual : extremes)
     {
-        vsSub(dimension, individual->objectives, ideal, matrix);
-        matrix += dimension;
+        vsSub(dimension, &individual->objectives[0], ideal, &(*row));
+        row += dimension;
     }
 
     int* ipiv = new int[dimension], info = 0;
     int column = 1;
-	sgesv(&dimension, &column, matrix,  &dimension, ipiv, interception, &dimension, &info);
+	sgesv(&dimension, &column, &matrix[0], &dimension, ipiv, interception, &dimension, &info);
     delete[] ipiv;
     ipiv = nullptr;
 
@@ -185,7 +184,7 @@ UNSGA::Reference::Cost UNSGA::Reference::Normalize(const std::list<Individual*> 
 
     for(const auto& individual : solution)
     {
-        vsSub(dimension, individual->objectives, ideal, costs);
+        vsSub(dimension, &individual->objectives[0], ideal, costs);
         vsDiv(dimension, costs, interception, costs);
         result.first.insert({ individual, costs });
 
@@ -194,7 +193,7 @@ UNSGA::Reference::Cost UNSGA::Reference::Normalize(const std::list<Individual*> 
 
     for (const auto& individual : critical)
     {
-        vsSub(dimension, individual->objectives, ideal, costs);
+        vsSub(dimension, &individual->objectives[0], ideal, costs);
         vsDiv(dimension, costs, interception, costs);
         result.second.insert({ individual, costs });
 
@@ -215,27 +214,31 @@ void UNSGA::Reference::Associate(const Cost& costs)
 {
     for (const auto& [individual, cost] : costs.first)
     {
-        std::pair<float, Point*> nearest(-INFINITY, nullptr);
+        std::map<float, Point*> rank;
+
+//        std::pair<float, Point*> nearest(+INFINITY, nullptr);
 
         for (auto& point : points_)
         {
-            float distance = point->distance(cost);
+            rank.insert({ point->distance(cost), point });
+//            float distance = point->distance(cost);
 
-            if (distance < nearest.first)
-            {
-                nearest.first = distance;
-                nearest.second = point;
-            }
+//            if (distance < nearest.first)
+//           {
+//                nearest.first = distance;
+//                nearest.second = point;
+//            }
         }
-
-        nearest.second->count++;
+           
+        rank.begin()->second->count++;
+//        nearest.second->count++;
     }
 
     std::map<Point*, std::map<float, Individual*>> association;
 
     for (const auto& [individual, cost] : costs.second)
     {
-        std::pair<float, Point*> nearest(0, nullptr);
+        std::pair<float, Point*> nearest(+INFINITY, nullptr);
 
         for (auto& point : points_)
         {
@@ -272,10 +275,8 @@ void UNSGA::Reference::Dispense(size_t needed, std::list<UNSGA::Individual*>& so
     {
         points_.sort([](Point* lhs, Point* rhs) {
             bool left = lhs->associated.empty();
-        bool right = rhs->associated.empty();
-
-        return left ? false : (right ? true : lhs->count < rhs->count);
-            });
+            bool right = rhs->associated.empty();
+            return left ? false : (right ? true : lhs->count < rhs->count);});
 
         solution.splice(solution.end(), (*points_.begin())->associated, (*points_.begin())->associated.begin());
         (*points_.begin())->count++;

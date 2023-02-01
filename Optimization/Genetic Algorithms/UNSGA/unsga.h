@@ -19,6 +19,11 @@ public:
 	struct Configuration;
 
 private:
+	template<class T>
+	class Allocator;
+
+
+	struct vector;
 	class Reference;
 	class Reproducor;
 
@@ -40,12 +45,23 @@ public:
 	~UNSGA();
 };
 
+struct UNSGA::vector
+{
+	float* address;
+
+public:
+	vector(size_t length);
+	~vector();
+};
+
+
 class UNSGA::Population
 {
 private:
 	std::shared_ptr<Configuration> configuration_;
-	std::list<Individual*> population_;
+	std::vector<std::unique_ptr<Individual>> individuals_;
 
+	std::list<Individual*> population_;
 private:
 	virtual void fitness(Individual*);
 
@@ -166,4 +182,26 @@ struct UNSGA::Configuration
 	size_t dimension, scale;
 	Objective* objective;
 };
+
+template<class T>
+class UNSGA::Allocator
+{
+public:
+	using value_type = T;
+	Allocator() = default;
+
+	template<class other>
+	Allocator(const Allocator<other>&) {};
+
+	void deallocate(T* pointer, const size_t length)
+	{
+		mkl_free(pointer);
+	}
+
+	T* allocate(size_t length)
+	{
+		return static_cast<T*>(mkl_malloc(length * sizeof(T), 64));
+	}
+};
+
 #endif // !_Mathematical_Tools_Optimization_Genetic_Algorithms_UNSGA_

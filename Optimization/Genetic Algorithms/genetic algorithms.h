@@ -16,15 +16,11 @@ public:
 class Genetic::Individual
 {
 public:
-    float * decisions, *objectives;
+    std::vector<float> decisions, objectives;
 
 public:
 //the reason of using the int type but not bool
 //when applying the non dorminant sort, if bool return only, the operator > needed be called again.
     virtual int operator < (const Individual& individual) const = 0;
-
-public:
-    Individual() : decisions(nullptr), objectives(nullptr) {}
-    ~Individual() {}
 };
 #endif // !_SJML_Optimization_Gentic Algorithms_

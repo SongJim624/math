@@ -1,5 +1,16 @@
 #include "unsga.h"
 
+UNSGA::vector::vector(size_t length)
+{
+	address = (float*)mkl_malloc(length * sizeof(float), 64);
+}
+
+UNSGA::vector::~vector()
+{
+	mkl_free(address);
+	address = nullptr;
+}
+
 UNSGA::UNSGA(const Configuration& configuration)
 {
 	configuration_ = std::make_shared<Configuration>(configuration);
