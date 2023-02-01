@@ -13,9 +13,7 @@ void UNSGA::Reproducor::Cross(const Individual& father, const Individual& mother
 {
 	size_t scale = configuration_->scale;
 
-//	std::vector<float, UNSGA::Allocator<float>> random(scale);
-//	std::vector<float, UNSGA::Allocator<float>> random(scale);
-	std::vector<float> random(scale);
+	std::vector<float, UNSGA::Allocator<float>> random(scale);
 	std::vector<float> weights(scale);
 
 	vsRngUniform(VSL_RNG_METHOD_UNIFORM_STD, configuration_->stream, scale, &random[0], 0, 1);

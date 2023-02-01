@@ -209,49 +209,33 @@ UNSGA::Reference::Cost UNSGA::Reference::Normalize(const std::list<Individual*> 
     return result;
 }
 
-
 void UNSGA::Reference::Associate(const Cost& costs)
 {
     for (const auto& [individual, cost] : costs.first)
     {
         std::map<float, Point*> rank;
 
-//        std::pair<float, Point*> nearest(+INFINITY, nullptr);
-
         for (auto& point : points_)
         {
             rank.insert({ point->distance(cost), point });
-//            float distance = point->distance(cost);
-
-//            if (distance < nearest.first)
-//           {
-//                nearest.first = distance;
-//                nearest.second = point;
-//            }
         }
            
         rank.begin()->second->count++;
-//        nearest.second->count++;
     }
 
     std::map<Point*, std::map<float, Individual*>> association;
 
     for (const auto& [individual, cost] : costs.second)
     {
-        std::pair<float, Point*> nearest(+INFINITY, nullptr);
+        std::map<float, Point*> rank;
 
         for (auto& point : points_)
         {
-            float distance = point->distance(cost);
-
-            if (distance < nearest.first)
-            {
-                nearest.first = distance;
-                nearest.second = point;
-            }
+            rank.insert({ point->distance(cost), point });
         }
 
-        association[nearest.second].insert({ nearest.first, individual });
+        auto nearest = rank.begin();
+        association[nearest->second].insert({ nearest->first, individual });
     }
 
     for (const auto& [point, associated] : association)
@@ -263,14 +247,8 @@ void UNSGA::Reference::Associate(const Cost& costs)
     }
 }
 
-void UNSGA::Reference::Dispense(size_t needed, std::list<UNSGA::Individual*>& solution, std::list<Individual*>& ciritical)
+void UNSGA::Reference::Dispense(size_t needed, std::list<UNSGA::Individual*>& solution, std::list<Individual*>& critical)
 {
-    //
-   // The choice of Zr should be random when the number of the points whose rho equals 0 is larger than one
-   // Here the first one of the list is used directly
-   // because the rho would be one after the individual associated with the point pushed into solution
-   // the later whose rho is also 0 would become the begin of the list
-
     for (size_t i = 0; i < needed; ++i)
     {
         points_.sort([](Point* lhs, Point* rhs) {
@@ -278,20 +256,35 @@ void UNSGA::Reference::Dispense(size_t needed, std::list<UNSGA::Individual*>& so
             bool right = rhs->associated.empty();
             return left ? false : (right ? true : lhs->count < rhs->count);});
 
-        solution.splice(solution.end(), (*points_.begin())->associated, (*points_.begin())->associated.begin());
+        solution.push_back(*(*points_.begin())->associated.begin());
+
+        (*points_.begin())->associated.pop_front();
         (*points_.begin())->count++;
+    }
+
+    critical.clear();
+
+    for (auto& point : points_)
+    {
+        point->count = 0;
+        
+        if (point->associated.empty())
+        {
+            continue;
+        }
+        else
+        {
+            critical.splice(critical.end(), point->associated);
+        }
     }
 }
 
 void UNSGA::Reference::Niche(size_t needed, std::list<UNSGA::Individual*>& solution, std::list<Individual*>& critical)
 {
-    float  * costs = (float *) mkl_malloc((solution.size() + critical.size()) *  configuration_->dimension * sizeof(float), 64);
+    std::vector<float, UNSGA::Allocator<float>>costs((solution.size() + critical.size())* configuration_->dimension);
 
-    Associate(Normalize(solution, critical, costs));
+    Associate(Normalize(solution, critical, &costs[0]));
     Dispense(needed, solution, critical);
-
-    mkl_free(costs);
-    costs = nullptr;
 }
 
 std::pair<std::list<UNSGA::Individual*>, std::list<UNSGA::Individual*>> UNSGA::Reference::Select(std::list<std::list<Individual*>>& layers)
@@ -321,7 +314,10 @@ std::pair<std::list<UNSGA::Individual*>, std::list<UNSGA::Individual*>> UNSGA::R
     }
 
     //Niche technology needed
-    Niche(selection - elites.size(), elites, *layers.begin());
+    if (selection > elites.size())
+    {
+        Niche(selection - elites.size(), elites, *layers.begin());
+    }
 
     //nove the left one to the population for cross and mutation operation
     while (layers.size() != 0)

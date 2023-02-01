@@ -1,15 +1,6 @@
 #include "unsga.h"
-
-UNSGA::vector::vector(size_t length)
-{
-	address = (float*)mkl_malloc(length * sizeof(float), 64);
-}
-
-UNSGA::vector::~vector()
-{
-	mkl_free(address);
-	address = nullptr;
-}
+#include <iostream>
+#include <fstream>
 
 UNSGA::UNSGA(const Configuration& configuration)
 {
@@ -35,6 +26,26 @@ std::shared_ptr<Optimizer::Result> UNSGA::Optimize(Objective * objective)
 		auto result = reproducor_->Reproduce(selected);
 		population_->Update(result);
 	}
+
+	auto layers = population_->sort();
+
+	std::ofstream best("best.txt");
+	std::ofstream results("results.txt");
+	
+	for (auto& individual : *layers.begin())
+	{
+		best << individual->objectives[0] << "\t" << individual->objectives[1] << std::endl;
+	}
+
+	for (auto& layer : layers)
+	{
+		for (auto& individual : layer)
+		{
+			results << individual->objectives[0] << "\t" << individual->objectives[1] << std::endl;
+		}
+	}
+	best.close();
+	results.close();
 
 	return results_;
 }

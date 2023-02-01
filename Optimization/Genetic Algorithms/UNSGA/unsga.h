@@ -22,8 +22,6 @@ private:
 	template<class T>
 	class Allocator;
 
-
-	struct vector;
 	class Reference;
 	class Reproducor;
 
@@ -44,16 +42,6 @@ public:
 	UNSGA(const Configuration& configuration);
 	~UNSGA();
 };
-
-struct UNSGA::vector
-{
-	float* address;
-
-public:
-	vector(size_t length);
-	~vector();
-};
-
 
 class UNSGA::Population
 {

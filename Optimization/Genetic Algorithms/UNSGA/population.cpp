@@ -3,16 +3,19 @@
 UNSGA::Population::Population(std::shared_ptr<Configuration> configuration)
 	: configuration_(configuration)
 {
-	for (const auto& decisions : configuration->initialization)
+	individuals_.resize(configuration_->population);
+
+	size_t index = 0;
+
+	for (index; index <configuration->initialization.size(); ++index)
 	{
-		individuals_.push_back(std::make_unique<Individual>(configuration, &decisions[0]));
+		individuals_[index] = std::make_unique<Individual>(configuration, &configuration_->initialization[index][0]);
 	}
 
-	for (size_t i = 0; i < configuration->population - configuration->initialization.size(); ++i)
+	for (index; index < configuration->population; ++index)
 	{
-		individuals_.push_back(std::make_unique<Individual>(configuration));
+		individuals_[index] = std::make_unique<Individual>(configuration);
 	}
-
 
 	for (auto& individual : individuals_)
 	{
