@@ -1,12 +1,45 @@
 #include "unsga.h"
 
-std::list<std::list<UNSGA::Individual*>> UNSGA::Population::Sort(std::list<Individual*>& population)
+UNSGA::Population::Population(std::shared_ptr<Configuration> configuration)
+	: configuration_(configuration)
 {
+	for (const auto& decisions : configuration->initialization)
+	{
+		population_.push_back(new Individual(configuration, &decisions[0]));
+	}
+
+	for (size_t i = 0; i < configuration->population - configuration->initialization.size(); ++i)
+	{
+		population_.push_back(new Individual(configuration));
+	}
+}
+
+UNSGA::Population::~Population()
+{
+	for (auto& individual : population_)
+	{
+		delete individual;
+		individual = nullptr;
+	}
+}
+
+void UNSGA::Population::fitness(Individual* individual)
+{
+	configuration_->objective->function(individual->decisions, individual->objectives, &individual->penalty);
+}
+
+std::list<std::list<UNSGA::Individual*>> UNSGA::Population::sort()
+{
+	for (auto individual : population_)
+	{
+		fitness(individual);
+	}
+
 	std::list<std::list<Individual*>> results;
 
-	for (auto individual = population.cbegin(); individual != population.end(); ++individual)
+	for (auto individual = population_.begin(); individual != population_.end(); ++individual)
 	{
-		for (auto later = std::next(individual); later != population.end(); ++later)
+		for (auto later = std::next(individual); later != population_.end(); ++later)
 		{
 			switch ((*individual) < (*later))
 			{
@@ -26,15 +59,15 @@ std::list<std::list<UNSGA::Individual*>> UNSGA::Population::Sort(std::list<Indiv
 		}
 	}
 
-	while (!population.empty())
+	while (!population_.empty())
 	{
 		results.push_back({});
-		population.sort([](Individual* lhs, Individual* rhs) {
-			lhs->dominated < rhs->dominated;
+		population_.sort([](Individual* lhs, Individual* rhs) {
+			return lhs->dominated < rhs->dominated;
 			});
 
-		auto location = population.begin();
-		for (location; location != population.end(); ++location)
+		auto location = population_.begin();
+		for (location; location != population_.end(); ++location)
 		{
 			if ((*location)->dominated != 0)
 			{
@@ -43,7 +76,7 @@ std::list<std::list<UNSGA::Individual*>> UNSGA::Population::Sort(std::list<Indiv
 		}
 
 		auto sequence = results.rbegin();
-		(*sequence).splice((*sequence).end(), population, population.begin(), location);
+		(*sequence).splice((*sequence).end(), population_, population_.begin(), location);
 
 		for (auto& individual : *results.rbegin())
 		{
@@ -59,31 +92,7 @@ std::list<std::list<UNSGA::Individual*>> UNSGA::Population::Sort(std::list<Indiv
 	return results;
 };
 
-void UNSGA::Select(Reference& plain, std::list<Individual*>& population, std::list<Individual*>& solution)
+void UNSGA::Population::Update(std::list<Individual*>& population)
 {
-	size_t selection = population.size() / 2;
-	//after the sort operator, the population is an empty set
-	std::list<std::list<Individual*>> layers = Sort(population);
-
-	//move the better individuals into the solution set
-	while (true)
-	{
-		if (solution.size() + layers.begin()->size() > selection)
-		{
-			break;
-		}
-
-		solution.splice(solution.end(), *layers.begin());
-		layers.pop_front();
-	}
-
-	//Niche technology needed
-	plain.Niche(selection - solution.size(), solution, *layers.begin());
-
-	//nove the left one to the population for cross and mutation operation
-	while (layers.size() != 0)
-	{
-		population.splice(population.end(), *layers.begin());
-		layers.pop_front();
-	}
+	population_ = std::move(population);
 }

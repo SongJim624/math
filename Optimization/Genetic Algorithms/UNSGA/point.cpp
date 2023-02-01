@@ -1,7 +1,7 @@
 #include "unsga.h"
 
-UNSGA::Reference::Point::Point(const float * location)
-    : location_(location), count_(0), associated_({})
+UNSGA::Reference::Point::Point(const float * location, std::shared_ptr<Configuration> configuration)
+    : location_(location), configuration_(configuration), count(0), associated({})
 {
 }
 
@@ -12,13 +12,15 @@ UNSGA::Reference::Point::~Point()
 
 float UNSGA::Reference::Point:: distance(const float * point) const
 {
-    float * temporary = mkl_malloc(size * sizeof(float), 64);
-    cblas_scopy(size, point, 1, temporary, 1);
+    size_t dimension = configuration_->dimension;
 
-    float coefficient = cblas_sdot(size, location_, 1, point, 1) / cblas_sdot(size, location_, 1, location_, 1);
-    cblas_saxpy(size, -coefficent, location_, 1, temporary, 1);
+    float * temporary = (float *) mkl_malloc(dimension * sizeof(float), 64);
+    cblas_scopy(dimension, point, 1, temporary, 1);
 
-    float result = sqrtf(cblas_sdot(size, temporary, 1, temporary, 1));
+    float coefficient = cblas_sdot(dimension, location_, 1, point, 1) / cblas_sdot(dimension, location_, 1, location_, 1);
+    cblas_saxpy(dimension, -coefficient, location_, 1, temporary, 1);
+
+    float result = sqrtf(cblas_sdot(dimension, temporary, 1, temporary, 1));
     mkl_free(temporary);
     temporary = nullptr;
     return result;

@@ -32,11 +32,11 @@ void Plain(size_t dimension, size_t division, float ** points)
             size_t amount = Combination(dimension - 1, division - i);
             float ** selected = new float *[amount];
 
-            for(size_t point = 0; i < amount; point++)
+            for(size_t i = 0; i < amount; ++i)
             {
-                (*point)[0] = i;
-                selected[i] = (*point) + 1;
-                point++;
+                (*points)[0] = i;
+                selected[i] = (*points) + 1;
+                points++;
             }
 
             Plain(dimension - 1, division - i, selected);
@@ -72,23 +72,48 @@ std::list<std::list<size_t>> Plain(size_t objectives, size_t division)
     }
 }
 
-UNSGA::Reference::Reference(size_t objectives, size_t division)
+UNSGA::Reference::Reference(std::shared_ptr<Configuration> configuration)
+    : configuration_(configuration)
 {
-    std::list<std::list<size_t>> plain = Plain(objectives, division);
+    size_t amount = Combination(configuration_->dimension, configuration_->division);
+    locations_ = (float*)mkl_malloc(amount * configuration_->dimension * sizeof(float), 64);
+    float** locations = new float* [amount];
 
-    for(const auto& point : plain)
+    for (size_t i = 0; i < amount; ++i)
     {
-        points.push_back(std::make_unique<Point>(division, point));
+        locations[i] = locations_ + i * configuration_->dimension;
     }
+
+    Plain(configuration_->dimension, configuration_->division, locations);
+
+    for (size_t i = 0; i < amount; ++i)
+    {
+        points_.push_back(new Point(locations[i], configuration_));
+    }
+    
+    delete[] locations;
+    locations = nullptr;
+}
+
+UNSGA::Reference::~Reference()
+{
+    for (auto& point : points_)
+    {
+        delete point;
+        point = nullptr;
+    }
+
+    mkl_free(locations_);
+    locations_ = nullptr;
 }
 
 void UNSGA::Reference::Ideal(const std::list<Individual*>& individuals, float* ideal)
 {
     for(const auto& individual : individuals)
     {
-        for(size_t i = 0; i < objectives_; ++i)
+        for(size_t i = 0; i < configuration_->dimension; ++i)
         {
-            ideal[i] = fminf(ideal[i], individual->objective()[i]);
+            ideal[i] = fminf(ideal[i], individual->objectives[i]);
         }
     }
 }
@@ -109,63 +134,71 @@ float Scale(size_t size, size_t dimension, const float * objective)
 
 void UNSGA::Reference::Interception(const std::list<Individual*>& solution, const float * ideal, float * interception)
 {
-    std::vector<Individual*> extremes(objectives_, nullptr);
-    std::vector<float> minimums(objectives_, +INFINITY);
-    float * matrix = (float *) mkl_malloc(objectives_ * objectives * sizeof(float), 64);
+    int dimension = configuration_->dimension;
 
-	for (const auto& individual : solution)
+    std::vector<Individual*> extremes(dimension, nullptr);
+    std::vector<float> minimums(dimension, +INFINITY);
+    float * matrix = (float *) mkl_malloc(dimension * dimension * sizeof(float), 64);
+
+	for (auto individual : solution)
 	{
-		for (size_t objective = 0; objective < objectives_; ++objective)
+		for (size_t objective = 0; objective < dimension; ++objective)
 		{
-            vsSub(dimension_, individual->objectives, ideal, matrix)
-            float asf = Scale(objectives_, objective, matrix);
+            vsSub(dimension, individual->objectives, ideal, matrix);
+            float asf = Scale(dimension, objective, matrix);
 
 			if (minimums[objective] > asf)
 			{
                 minimums[objective] = asf;
-				extremes[objective] = *individual;
+				extremes[objective] = individual;
 			}
 		}
-        cost += objectives_;
 	}
 
-    std::fill(interception, interception + objectives_, 1);
+    std::fill(interception, interception + dimension, 1);
     for(const auto& individual : extremes)
     {
-        vsSub(objectives, cost, ideal, matrix);
-        matrix += objectives;
+        vsSub(dimension, individual->objectives, ideal, matrix);
+        matrix += dimension;
     }
 
-	int ipiv[objectives], info;
-	sgesv(&objectives, 1, matrix,  objectives, ipiv, interception,objectives, &info);
+    int* ipiv = new int[dimension], info = 0;
+    int column = 1;
+	sgesv(&dimension, &column, matrix,  &dimension, ipiv, interception, &dimension, &info);
+    delete[] ipiv;
+    ipiv = nullptr;
 
 	float one = 1;
-	vsDivI(Individual::size(), &one, 0, interception_, 1, interception, 1);
+	vsDivI(configuration_->dimension, &one, 0, interception, 1, interception, 1);
 }
 
 UNSGA::Reference::Cost UNSGA::Reference::Normalize(const std::list<Individual*> solution, const std::list<Individual*>& critical, float* costs)
 {
-    float * ideal = Ideal(solution);
-    float * interception = Ideal(solution, ideal);
+    size_t dimension = configuration_->dimension;
+    float* ideal = (float*)mkl_malloc(dimension * sizeof(float), 64);
+    float* interception = (float*)mkl_malloc(dimension * sizeof(float), 64);
+
+    Ideal(solution, ideal);
+    Interception(solution, ideal, interception);
 
     Cost result({{}, {}});
 
     for(const auto& individual : solution)
     {
-        vsSub(objectives_, individual->objectives, ideal, costs);
-        vsDiv(objectives_, costs, interception, costs);
+        vsSub(dimension, individual->objectives, ideal, costs);
+        vsDiv(dimension, costs, interception, costs);
         result.first.insert({ individual, costs });
 
-        costs += size;
+        costs += dimension;
     }
 
     for (const auto& individual : critical)
     {
-        vsSub(size, individual->objectives(), ideal, costs);
-        vsDiv(size, costs, interception, costs);
+        vsSub(dimension, individual->objectives, ideal, costs);
+        vsDiv(dimension, costs, interception, costs);
         result.second.insert({ individual, costs });
 
-        costs += size;
+        costs += dimension;
     }
 
     mkl_free(ideal);
@@ -178,7 +211,7 @@ UNSGA::Reference::Cost UNSGA::Reference::Normalize(const std::list<Individual*> 
 }
 
 
-void UNSGA::Reference::Associate(const std::pair<std::map<Individual*, float*>, std::map<Individual*, float*>>& costs)
+void UNSGA::Reference::Associate(const Cost& costs)
 {
     for (const auto& [individual, cost] : costs.first)
     {
@@ -229,12 +262,12 @@ void UNSGA::Reference::Associate(const std::pair<std::map<Individual*, float*>, 
 
 void UNSGA::Reference::Dispense(size_t needed, std::list<UNSGA::Individual*>& solution, std::list<Individual*>& ciritical)
 {
-    /*
-    * The choice of Zr should be random when the number of the points whose rho equals 0 is larger than one
-    * Here the first one of the list is used directly
-    * because the rho would be one after the individual associated with the point pushed into solution
-    * the later whose rho is also 0 would become the begin of the list
-    */
+    //
+   // The choice of Zr should be random when the number of the points whose rho equals 0 is larger than one
+   // Here the first one of the list is used directly
+   // because the rho would be one after the individual associated with the point pushed into solution
+   // the later whose rho is also 0 would become the begin of the list
+
     for (size_t i = 0; i < needed; ++i)
     {
         points_.sort([](Point* lhs, Point* rhs) {
@@ -244,22 +277,62 @@ void UNSGA::Reference::Dispense(size_t needed, std::list<UNSGA::Individual*>& so
         return left ? false : (right ? true : lhs->count < rhs->count);
             });
 
-        //         the associated points should be sorted after attached.
-       //        auto point = points_.begin();
-       //        point->individuals.sort(DistanceCMP());
-
         solution.splice(solution.end(), (*points_.begin())->associated, (*points_.begin())->associated.begin());
         (*points_.begin())->count++;
     }
 }
 
-void UNSGA::Reference::Niche(size_t needed, std::list<UNSGA::Individual*>& solution, std::list<Individual*>& ciritical)
+void UNSGA::Reference::Niche(size_t needed, std::list<UNSGA::Individual*>& solution, std::list<Individual*>& critical)
 {
-    float  * costs = (float *) mkl_malloc((solution.size() + critical.size()) *  objectives_ * sizeof(float), 64);
+    float  * costs = (float *) mkl_malloc((solution.size() + critical.size()) *  configuration_->dimension * sizeof(float), 64);
 
     Associate(Normalize(solution, critical, costs));
-    Despense(needed, solution, critical);
+    Dispense(needed, solution, critical);
 
     mkl_free(costs);
     costs = nullptr;
+}
+
+std::pair<std::list<UNSGA::Individual*>, std::list<UNSGA::Individual*>> UNSGA::Reference::Select(std::list<std::list<Individual*>>& layers)
+{
+    std::pair<std::list<Individual*>, std::list<Individual*>> result{ {}, {} };
+
+    size_t selection = 0;
+    for(const auto& layer : layers)
+    {
+        selection += layer.size();
+    }
+    selection /= 2;
+
+    auto& elites = result.first;
+    auto& ordinary = result.second;
+
+    //move the better individuals into the solution set
+    while (true)
+    {
+        if (elites.size() + layers.begin()->size() > selection)
+        {
+            break;
+        }
+
+        elites.splice(elites.end(), *layers.begin());
+        layers.pop_front();
+    }
+
+    //Niche technology needed
+    Niche(selection - elites.size(), elites, *layers.begin());
+
+    //nove the left one to the population for cross and mutation operation
+    while (layers.size() != 0)
+    {
+        ordinary.splice(ordinary.end(), *layers.begin());
+        layers.pop_front();
+    }
+
+    return result;
+}
+
+size_t UNSGA::Reference::size() const
+{
+    return points_.size();
 }
