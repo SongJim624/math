@@ -90,7 +90,7 @@ UNSGA::Reference::Reference(std::shared_ptr<Configuration> configuration)
     {
         points_.push_back(new Point(locations[i], configuration_));
     }
-    
+
     delete[] locations;
     locations = nullptr;
 }
@@ -215,7 +215,7 @@ void UNSGA::Reference::Associate(const Cost& costs)
 {
     for (const auto& [individual, cost] : costs.first)
     {
-        std::pair<float, Point*> nearest(0, nullptr);
+        std::pair<float, Point*> nearest(-INFINITY, nullptr);
 
         for (auto& point : points_)
         {
