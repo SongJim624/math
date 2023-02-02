@@ -137,6 +137,9 @@ void UNSGA::Reference::Interception(const std::list<Individual*>& solution, cons
     std::vector<float> minimums(dimension, +INFINITY);
     std::vector<float> matrix(dimension * dimension);
 
+
+    std::vector<std::map<float, Individual*>> rank(dimension);
+
 	for (auto individual : solution)
 	{
 		for (size_t objective = 0; objective < dimension; ++objective)
@@ -144,20 +147,16 @@ void UNSGA::Reference::Interception(const std::list<Individual*>& solution, cons
             vsSub(dimension, &individual->objectives[0], ideal, &matrix[0]);
             float asf = Scale(dimension, objective, &matrix[0]);
 
-			if (minimums[objective] > asf)
-			{
-                minimums[objective] = asf;
-				extremes[objective] = individual;
-			}
+            rank[objective].insert({ asf, individual });
 		}
 	}
 
     std::fill(interception, interception + dimension, 1);
     
     auto row = matrix.begin();
-    for(const auto& individual : extremes)
+    for(const auto& extreme : rank)
     {
-        vsSub(dimension, &individual->objectives[0], ideal, &(*row));
+        vsSub(dimension, &(extreme.begin()->second->objectives[0]), ideal, &(*row));
         row += dimension;
     }
 
@@ -309,6 +308,12 @@ std::pair<std::list<UNSGA::Individual*>, std::list<UNSGA::Individual*>> UNSGA::R
             break;
         }
 
+        elites.splice(elites.end(), *layers.begin());
+        layers.pop_front();
+    }
+
+    if (elites.empty())
+    {
         elites.splice(elites.end(), *layers.begin());
         layers.pop_front();
     }

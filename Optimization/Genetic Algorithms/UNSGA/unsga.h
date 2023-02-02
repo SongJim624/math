@@ -65,7 +65,7 @@ public:
 class UNSGA::Individual : public Genetic::Individual
 {
 private:
-	std::shared_ptr<Configuration> configuration;
+	std::shared_ptr<Configuration> configuration_;
 
 public:
 	virtual int operator < (const Genetic::Individual& individual) const;

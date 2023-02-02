@@ -27,7 +27,7 @@ int dominate(float lhs, float rhs)
 }
 
 UNSGA::Individual::Individual(std::shared_ptr<Configuration> configuration)
-	: penalty(0), dominated(0), dominates({})
+	: configuration_(configuration), penalty(0), dominated(0), dominates({})
 {
 	decisions = std::vector<float>(configuration->scale);
 	objectives = std::vector<float>(configuration->dimension);
@@ -49,7 +49,7 @@ UNSGA::Individual::Individual(std::shared_ptr<Configuration> configuration)
 }
 
 UNSGA::Individual::Individual(std::shared_ptr<Configuration> configuration, const float * initial)
-	: penalty(0), dominated(0), dominates({})
+	: configuration_(configuration), penalty(0), dominated(0), dominates({})
 {
 	decisions = std::vector<float>(configuration->scale);
 	objectives = std::vector<float>(configuration->dimension);
@@ -64,11 +64,11 @@ UNSGA::Individual::~Individual()
 //non dominated compare
 int UNSGA::Individual::operator < (const Genetic::Individual& individual) const
 {
-	int status = compare(penalty, dynamic_cast<const Individual*>(&individual)->penalty);
+	int status = dominate(penalty, dynamic_cast<const Individual*>(&individual)->penalty);
 
 	if (status == 0)
 	{
-		status = dominate(configuration->dimension, &objectives[0], &individual.objectives[0]);
+		status = dominate(configuration_->dimension, &objectives[0], &(individual.objectives[0]));
 	}
 	
 	return status;

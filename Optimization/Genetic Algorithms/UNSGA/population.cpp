@@ -45,7 +45,7 @@ std::list<std::list<UNSGA::Individual*>> UNSGA::Population::sort()
 	{
 		for (auto later = std::next(individual); later != population_.end(); ++later)
 		{
-			switch ((*individual) < (*later))
+			switch ((**individual) < (**later))
 			{
 			case 1 :
 			{
