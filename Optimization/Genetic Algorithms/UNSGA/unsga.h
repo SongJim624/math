@@ -93,18 +93,19 @@ public:
 class UNSGA::Reference
 {
 private:
-typedef std::pair<std::map<Individual*, float *>, std::map<Individual*, float *>> Cost;
+typedef std::pair<std::map<Individual*, std::vector<float>>, std::map<Individual*, std::vector<float>>> Cost;
 	class Point;
 
 private:
 	std::shared_ptr<Configuration> configuration_;
-	float* locations_;
+	std::vector<std::unique_ptr<Point>> storage_;
+
+private:
 	std::list<Point*> points_;
 
 private:
-//the functions are not that rigid because the memory applied in Ideal and Interception are released in Normalize.
-	void  Ideal(const std::list<Individual*>& individuals, float * ideal);
-	void Interception(const std::list<Individual*>& individuals, const float * ideal, float * interception);
+	std::vector<float>  Ideal(const std::list<Individual*>& individuals);
+	std::vector<float> Interception(const std::list<Individual*>& individuals, const std::vector<float>& ideal);
 	Cost Normalize(const std::list<Individual*> solution, const std::list<Individual*>& critical, float * costs);
 	void Associate(const Cost& costs);
 	void Dispense(size_t needed, std::list<Individual*>& solution, std::list<Individual*>& critical);
@@ -125,18 +126,18 @@ class UNSGA::Reference::Point
 {
 private:
 	std::shared_ptr<Configuration> configuration_;
-	const float * location_;
+	std::vector<float> location_;
 
 public:
 	size_t count;
 	std::list<Individual*> associated;
 
 public:
-	Point(const float * location, std::shared_ptr<Configuration> configuration);
+	Point(const float* location, std::shared_ptr<Configuration> configuration);
 	~Point();
 
 	//perpendicular distance for a point to the reference line
-	float distance(const float * point) const;
+	float distance(const std::vector<float>& point) const;
 };
 
 class UNSGA::Reproducor
@@ -160,6 +161,7 @@ public:
 
 struct UNSGA::Configuration
 {
+	//algorithm configuration
 	size_t maximum, division, population;
 	std::vector<std::vector <float>> initialization;
 
@@ -167,6 +169,7 @@ struct UNSGA::Configuration
 	float cross, mutation, threshold;
 	VSLStreamStatePtr stream;
 
+	//objective information
 	size_t dimension, scale;
 	Objective* objective;
 };

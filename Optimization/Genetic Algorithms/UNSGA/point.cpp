@@ -1,32 +1,29 @@
 #include "unsga.h"
 
-UNSGA::Reference::Point::Point(const float * location, std::shared_ptr<Configuration> configuration)
-    : location_(location), configuration_(configuration), count(0), associated({})
+float dot(const std::vector<float>& lhs, const std::vector<float>& rhs)
 {
+    assert(lhs.size() == rhs.size(), "dot function for vector: size not equal");
+    return cblas_sdot(lhs.size(), &lhs[0], 1, &rhs[0], 1);
+}
+
+UNSGA::Reference::Point::Point(const float * location, std::shared_ptr<Configuration> configuration)
+    : configuration_(configuration), count(0), associated({})
+{
+    location_ = std::vector<float, UNSGA::Allocator<float>>(configuration->dimension);
+    cblas_scopy(location.size(), location, 1, &location_[0], 1);
 }
 
 UNSGA::Reference::Point::~Point()
 {
-    location_ = nullptr;
 }
 
-float UNSGA::Reference::Point:: distance(const float * point) const
+float UNSGA::Reference::Point:: distance(const std::vector<float>& point) const
 {
     size_t dimension = configuration_->dimension;
+    std::vector<float, UNSGA::Allocator<float>> temporary(dimension);
 
-//    float * temporary = (float *) mkl_malloc(dimension * sizeof(float), 64);
-    float * temporary = new float[dimension];
-    
-    
-    cblas_scopy(dimension, point, 1, temporary, 1);
+    cblas_scopy(dimension, &point[0], 1, &temporary[0], 1);
+    cblas_saxpy(dimension, -dot(location_, point) / cblas_sdot(location_, location_), location_, 1, temporary, 1);
 
-    float coefficient = cblas_sdot(dimension, location_, 1, point, 1) / cblas_sdot(dimension, location_, 1, location_, 1);
-    cblas_saxpy(dimension, -coefficient, location_, 1, temporary, 1);
-
-    float result = sqrtf(cblas_sdot(dimension, temporary, 1, temporary, 1));
-    //mkl_free(temporary);
-    //temporary = nullptr;
-    delete[] temporary;
-    temporary = nullptr;
-    return result;
+    return sqrtf(dot(temporary, temporary));
 }

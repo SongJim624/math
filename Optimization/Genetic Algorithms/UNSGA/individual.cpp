@@ -48,13 +48,13 @@ UNSGA::Individual::Individual(std::shared_ptr<Configuration> configuration)
 	}
 }
 
-UNSGA::Individual::Individual(std::shared_ptr<Configuration> configuration, const float * initial)
+UNSGA::Individual::Individual(std::shared_ptr<Configuration> configuration, const std::vector<float>& initial)
 	: configuration_(configuration), penalty(0), dominated(0), dominates({})
 {
-	decisions = std::vector<float>(configuration->scale);
-	objectives = std::vector<float>(configuration->dimension);
+	decisions = std::vector<float, UNSGA::Allocator<float>>(configuration->scale);
+	objectives = std::vector<float, UNSGA::Allocator<float>>(configuration->dimension);
 
-	cblas_scopy(configuration->scale, initial, 1, &decisions[0], 1);
+	cblas_scopy(configuration->scale, &initial[0], 1, &decisions[0], 1);
 }
 
 UNSGA::Individual::~Individual()
@@ -70,6 +70,6 @@ int UNSGA::Individual::operator < (const Genetic::Individual& individual) const
 	{
 		status = dominate(configuration_->dimension, &objectives[0], &(individual.objectives[0]));
 	}
-	
+
 	return status;
 }
