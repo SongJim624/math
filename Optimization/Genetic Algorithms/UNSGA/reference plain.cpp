@@ -32,7 +32,7 @@ void Plain(size_t dimension, size_t division, std::vector<float*>& points)
             size_t amount = Combination(dimension - 1, division - i);
             std::vector<float*> selected(amount);
 
-            auto& point = points.begin();
+            auto point = points.begin();
             for(size_t j = 0; j < amount; ++j)
             {
                 (*point)[0] = i;
@@ -55,11 +55,12 @@ UNSGA::Reference::Reference(std::shared_ptr<Configuration> configuration)
     std::vector<float*> locations(amount, (float*) mkl_malloc(dimension * sizeof(float), 64));
 
     Plain(configuration_->dimension, configuration_->division, locations);
-    cblas_sscal(amount * configuration_->dimension, 1.0 / configuration_->division, locations_, 1);
 
     for (size_t i = 0; i < amount; ++i)
     {
-        storage_[i] = std::make_unique<Point>(locations[i], configuration_)
+        cblas_sscal(configuration_->dimension, 1.0 / configuration_->division, locations[i], 1);
+        storage_[i] = std::make_unique<Point>(locations[i], configuration_);
+
         points_.push_back(storage_[i].get());
         mkl_free(locations[i]);
     }
@@ -67,18 +68,11 @@ UNSGA::Reference::Reference(std::shared_ptr<Configuration> configuration)
 
 UNSGA::Reference::~Reference()
 {
-    for (auto& point : points_)
-    {
-        delete point;
-        point = nullptr;
-    }
-
-    mkl_free(locations_);
-    locations_ = nullptr;
 }
 
-void UNSGA::Reference::Ideal(const std::list<Individual*>& individuals, float* ideal)
+UNSGA::vector UNSGA::Reference::Ideal(const std::list<Individual*>& individuals)
 {
+    UNSGA::vector ideal(configuration_->dimension);
     for(const auto& individual : individuals)
     {
         for(size_t i = 0; i < configuration_->dimension; ++i)
@@ -86,10 +80,12 @@ void UNSGA::Reference::Ideal(const std::list<Individual*>& individuals, float* i
             ideal[i] = fminf(ideal[i], individual->objectives[i]);
         }
     }
+
+    return ideal;
 }
 
 //achievement scalar function
-float Scale(size_t size, size_t dimension, const std::vector<float>& objective)
+float Scale(size_t size, size_t dimension, const UNSGA::vector& objective)
 {
     std::vector<float, UNSGA::Allocator<float>> weights(size, 1e-6);
     weights[dimension] = 1;
@@ -98,7 +94,7 @@ float Scale(size_t size, size_t dimension, const std::vector<float>& objective)
     return *std::max_element(weights.begin(), weights.end());
 }
 
-std::vector<float> UNSGA::Reference::Interception(const std::list<Individual*>& solution, const std::vector<float>& ideal)
+UNSGA::vector UNSGA::Reference::Interception(const std::list<Individual*>& solution, const UNSGA::vector& ideal)
 {
     int dimension = configuration_->dimension;
 
@@ -112,18 +108,18 @@ std::vector<float> UNSGA::Reference::Interception(const std::list<Individual*>& 
 		for (size_t objective = 0; objective < dimension; ++objective)
 		{
             vsSub(dimension, &(individual->objectives[0]), &ideal[0], &matrix[0]);
-            rank[objective].insert({ Scale(dimension, objective, &matrix[0]), individual });
+            rank[objective].insert({ Scale(dimension, objective, matrix), individual });
 		}
 	}
 
     for(size_t i = 0; i < dimension; ++i)
     {
-        vsSub(dimension, &(rank[i].begin()->second->objectives[0]), &ideal[0], &matirx[i * dimension]);
+        vsSub(dimension, &(rank[i].begin()->second->objectives[0]), &ideal[0], &matrix[i * dimension]);
     }
 
     std::vector<int>ipiv(dimension);
     int info = 0, column = 1;
-	sgesv(&dimension, &column, &matrix[0], &dimension, &ipiv[0], interception, &dimension, &info);
+	sgesv(&dimension, &column, &matrix[0], &dimension, &ipiv[0], &interception[0], &dimension, &info);
 
 	float one = 1;
 	vsDivI(configuration_->dimension, &one, 0, &interception[0], 1, &interception[0], 1);

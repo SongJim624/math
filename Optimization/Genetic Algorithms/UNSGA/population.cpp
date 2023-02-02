@@ -9,7 +9,7 @@ UNSGA::Population::Population(std::shared_ptr<Configuration> configuration)
 
 	for (index; index <configuration->initialization.size(); ++index)
 	{
-		individuals_[index] = std::make_unique<Individual>(configuration, &configuration_->initialization[index][0]);
+		individuals_[index] = std::make_unique<Individual>(configuration, configuration_->initialization[index]);
 	}
 
 	for (index; index < configuration->population; ++index)

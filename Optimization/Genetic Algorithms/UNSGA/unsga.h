@@ -9,6 +9,7 @@
 #include <memory>
 #include <array>
 #include <mkl.h>
+#include <cassert>
 
 class UNSGA : public Genetic
 {
@@ -18,10 +19,31 @@ public:
 	class Result;
 	struct Configuration;
 
-private:
 	template<class T>
-	class Allocator;
+	class Allocator
+	{
+	public:
+		using value_type = T;
+		Allocator() = default;
 
+		template<class other>
+		Allocator(const Allocator<other>&) {};
+
+		void deallocate(T* pointer, const size_t length)
+		{
+			mkl_free(pointer);
+		}
+
+		T* allocate(size_t length)
+		{
+			return static_cast<T*>(mkl_malloc(length * sizeof(T), 64));
+		}
+	};
+
+public:
+	typedef std::vector<float, Allocator<float>> vector;
+
+private:
 	class Reference;
 	class Reproducor;
 
@@ -72,7 +94,7 @@ public:
 
 public:
 	Individual(std::shared_ptr<Configuration> configuration);
-	Individual(std::shared_ptr<Configuration> configuration, const float* initial);
+	Individual(std::shared_ptr<Configuration> configuration, const std::vector<float>& initial);
 	~Individual();
 
 public:
@@ -93,7 +115,7 @@ public:
 class UNSGA::Reference
 {
 private:
-typedef std::pair<std::map<Individual*, std::vector<float>>, std::map<Individual*, std::vector<float>>> Cost;
+typedef std::pair<std::map<Individual*, UNSGA::vector>, std::map<Individual*, UNSGA::vector>> Cost;
 	class Point;
 
 private:
@@ -104,9 +126,9 @@ private:
 	std::list<Point*> points_;
 
 private:
-	std::vector<float>  Ideal(const std::list<Individual*>& individuals);
-	std::vector<float> Interception(const std::list<Individual*>& individuals, const std::vector<float>& ideal);
-	Cost Normalize(const std::list<Individual*> solution, const std::list<Individual*>& critical, float * costs);
+	UNSGA::vector  Ideal(const std::list<Individual*>& individuals);
+	UNSGA::vector Interception(const std::list<Individual*>& individuals, const UNSGA::vector& ideal);
+	Cost Normalize(const std::list<Individual*> solution, const std::list<Individual*>& critical);
 	void Associate(const Cost& costs);
 	void Dispense(size_t needed, std::list<Individual*>& solution, std::list<Individual*>& critical);
 
@@ -126,7 +148,7 @@ class UNSGA::Reference::Point
 {
 private:
 	std::shared_ptr<Configuration> configuration_;
-	std::vector<float> location_;
+	UNSGA::vector location_;
 
 public:
 	size_t count;
@@ -137,7 +159,7 @@ public:
 	~Point();
 
 	//perpendicular distance for a point to the reference line
-	float distance(const std::vector<float>& point) const;
+	float distance(const UNSGA::vector& point) const;
 };
 
 class UNSGA::Reproducor
@@ -173,26 +195,4 @@ struct UNSGA::Configuration
 	size_t dimension, scale;
 	Objective* objective;
 };
-
-template<class T>
-class UNSGA::Allocator
-{
-public:
-	using value_type = T;
-	Allocator() = default;
-
-	template<class other>
-	Allocator(const Allocator<other>&) {};
-
-	void deallocate(T* pointer, const size_t length)
-	{
-		mkl_free(pointer);
-	}
-
-	T* allocate(size_t length)
-	{
-		return static_cast<T*>(mkl_malloc(length * sizeof(T), 64));
-	}
-};
-
 #endif // !_Mathematical_Tools_Optimization_Genetic_Algorithms_UNSGA_

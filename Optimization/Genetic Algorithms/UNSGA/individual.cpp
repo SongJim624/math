@@ -51,8 +51,11 @@ UNSGA::Individual::Individual(std::shared_ptr<Configuration> configuration)
 UNSGA::Individual::Individual(std::shared_ptr<Configuration> configuration, const std::vector<float>& initial)
 	: configuration_(configuration), penalty(0), dominated(0), dominates({})
 {
-	decisions = std::vector<float, UNSGA::Allocator<float>>(configuration->scale);
-	objectives = std::vector<float, UNSGA::Allocator<float>>(configuration->dimension);
+//	decisions = std::vector<float, UNSGA::Allocator<float>>(configuration->scale);
+//	objectives = std::vector<float, UNSGA::Allocator<float>>(configuration->dimension);
+
+	decisions = std::vector<float>(configuration->scale);
+	objectives = std::vector<float>(configuration->dimension);
 
 	cblas_scopy(configuration->scale, &initial[0], 1, &decisions[0], 1);
 }
