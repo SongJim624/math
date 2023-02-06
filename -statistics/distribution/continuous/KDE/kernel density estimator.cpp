@@ -167,14 +167,16 @@ KDE<T>::KDE (const std::vector<T>& x) :
 	{
 		T Eold = ent;
 		ent = regEM(w, mu, sig, del, X);// update parameters;
-		
+
 		T err = abs((ent - Eold) / ent);
 		if (err < 1e-6) { break; }
 	}
 }
 
-void KDE::density(float * X, float * Y, long size)
+void KDE::density(size_t size, const float * X, float * Y)
 {
+	size_t pivots = mean_.size();
+
 	float * x = new float [length];
 
 	float * temp = new float [length];
@@ -182,11 +184,13 @@ void KDE::density(float * X, float * Y, long size)
 
 	for(long i = 0;  i < size; ++i)
 	{
+		vsSubI(pivots, X, 1, &minimum_, 0, x, 1)
+
 		for(long j = 0; j < length; ++j)
 		{
 			x[j] = (X[i] - MIN);
 		}
-		cblas_sscal(length, 1 / scaling, x);
+		cblas_sscal(pivots, 1 / scaling_, x, 1);
 
 		vsSub(length, x, mu, temp);
 		vsMul(length, x, temp, temp);
@@ -201,6 +205,5 @@ void KDE::density(float * X, float * Y, long size)
 	}
 
 	cblas_sscal(size, 1 / scaling, Y);
-	delete[] temp;
 	return;
 }

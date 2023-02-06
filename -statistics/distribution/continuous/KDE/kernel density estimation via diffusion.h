@@ -77,26 +77,23 @@ public:
 
 #ifndef _KDE_
 #define _KDE_
-template<typename T>
-class KDE : public Distribution<T>
+//Kernel density estimation via diffusion
+class KDE
 {
 private:
-    float * mu, sig, w;
-    long size;
-    float MAX, MIN, scaling;
-
-//    std::vector<T> mu, sig, w;
-//    T MAX, MIN, scaling;
+//    float * mu, sig, w;
+    size_t size;
+//    float MAX, MIN, scaling;
 
 private:
-    virtual void density(float * X, float * Y, long size);
-    virtual void distribution(float * X, float * Y, long size);
+    std::vector<float> mean_, variation_, weight_;
+    float maximum_, minmum_, scaling_;
 
-    std::vector<T> pdf(const std::vector<T>& X);
-    T pdf(const T& X);
-    std::vector<T> cdf(const std::vector<T>& X);
+private:
+    virtual void density(size_t length, const float * X, float * Y);
+    virtual void probability(size_t length, const float * X, float * Y);
 
 public:
-    KDE (const std::vector<T>& X);
+    KDE (const std::vector<float>& X);
 };
 #endif

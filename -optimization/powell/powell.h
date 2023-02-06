@@ -11,14 +11,15 @@ private:
     std::list<float *> directions;
 
     float * values;
+
 private:
-    float Search(Function* function, float * X0, float * direction);
+    float Search(Function* function, float * initial, float * direction);
 
 public:
-    Powell(Function* function, const long& decisions, float * initial);
+    Powell(Function* function, size_t decisions, float * initial);
     ~Powell();
 
-    virtual void Optimize(const char * result);
-
+public:
+    virtual std::shared_ptr<Result> Optimize(Objective * objective);
 };
 #endif //! _POWELL_
