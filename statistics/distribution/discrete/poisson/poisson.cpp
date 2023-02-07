@@ -18,7 +18,7 @@ void Location::function(long * X, float * Y, long size)
 	return;
 }
 
-void Location::distribution(long* X, float* Y, long size)
+void Poisson::distribution(long* X, float* Y, long size)
 {
  //   cdf = 0.5 * (1.0 + erf(0.5 * sqrt(2) * (x - mu) / sigma));
 

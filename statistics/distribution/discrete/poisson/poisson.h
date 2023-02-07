@@ -1,30 +1,21 @@
-#include "../Discrete.h"
+#include "../../../distribution/distribution.h"
 
 #ifndef _SJML_STATISTICS_DISTRIBUTION_DISCRETE_POISSON_
 #define _SJML_STATISTICS_DISTRIBUTION_DISCRETE_POISSON_
-namespace SJML
+
+class Poisson : public Distribution
 {
-    namespace Statistics
-    {
-        namespace Distribution
-        {
-            namespace Discrete
-            {
-                class Poisson : public Discrete
-                {
-                protected:
-                    float lambda;
+protected:
+    float lambda_;
 
-                public:
-					Poisson(const float& lambda);
-                    virtual ~Poisson(){};
+public:
+    Poisson(float lambda);
+    virtual ~Poisson(){};
 
-                public:
-                    virtual void density(long * X, float * Y, long size);
-                    virtual void probability(long * X, float * Y, long size);
-                };
-            };
-        };
-    };
+public:
+    virtual void density(size_t length, const float * locations, float * results);
+    virtual void probability(size_t length, const float * locations, float * results);
+    virtual void sampling(size_t length, float * results);
 };
+
 #endif //! _SJML_STATISTICS_DISTRIBUTION_DISCRETE_POISSON_
