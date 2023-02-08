@@ -87,7 +87,11 @@ private:
 
 private:
     std::vector<float> mean_, variation_, weight_;
+    std::function<(size_t, const float *, float *)> kernel_;
     float maximum_, minmum_, scaling_;
+
+private:
+    void SetKernel(const std::string& function);
 
 private:
     virtual void density(size_t length, const float * X, float * Y);

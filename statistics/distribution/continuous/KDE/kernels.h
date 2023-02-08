@@ -1,6 +1,6 @@
 #include "math.h"
+#include "kernel density estimation via diffusion.h"
 
-template<typename T>
 T Uniform(const T& x)
 {
 	return abs(x) < 1 ? 0.5 : 0;
@@ -70,3 +70,8 @@ T Silverman(const T& x)
 {
 	return 0.5 * exp(-abs(x) / sqrt(2.0))*sin(abs(x) / sqrt(2.0) + PI / 4.0);
 };
+
+void KDE::SetKernel(const std::string& function)
+{
+
+}
