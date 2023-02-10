@@ -4,8 +4,6 @@
 
 class Calibrator
 {
-private:    
+private:
     std::unordered_map<std::string, Distribution*> parameters;
-
-
 };

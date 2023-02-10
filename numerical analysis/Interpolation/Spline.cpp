@@ -1,7 +1,7 @@
 #include "Interpolation.h"
 
 template<typename T>
-Spline<T>::Spline(T* X, T* Y, const long& length, size_t type)
+Spline::Spline(T* X, T* Y, const long& length, size_t type)
 	: Interpolation<T>(X, Y, length), hermite(nullptr)
 {
 	T* dY = new T[length];

@@ -9,7 +9,7 @@ template<typename T>
 Largrange<T>::~Largrange(){}
 
 template<typename T>
-T Largrange<T>::Interpolate(const T& x)
+T Largrange::Interpolate(T x)
 {
 	long left = 0, right = 0;
 	
