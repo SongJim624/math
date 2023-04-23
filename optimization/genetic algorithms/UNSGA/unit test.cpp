@@ -2,47 +2,13 @@
 #include <fstream>
 #include "unsga.h"
 
-class Function : public Optimizer::Objective
+class Objective : public Optimization::Objective<float>
 {
 private:
-	const size_t decisions_ = 2;
-	const size_t objectives_ = 2;
-	const float upper_[2] = {-1, -1};
-	const float lower_[2] = {1, 1};
-	const bool integer_[2] = { false, false };
+	size_t decisions_ = 2;
 
 public:
-	virtual size_t scale() const
-	{
-		return decisions_;
-	}
-
-	virtual size_t dimension() const
-	{
-		return objectives_;
-	}
-
-	virtual size_t constraints() const
-	{
-		return 0;
-	}
-
-	virtual const float* upper() const
-	{
-		return upper_;
-	}
-
-	virtual const float* lower() const
-	{
-		return lower_;
-	}
-
-	virtual const bool* integer() const
-	{
-		return integer_;
-	}
-
-	virtual void function(const float* decisions, float* objectives, float * voilations = nullptr)
+	virtual void function(const float* decisions, float* objectives)
 	{
 		objectives[0] = 0;
 
@@ -65,9 +31,70 @@ public:
 	}
 };
 
+class Constraint : public Optimization::Constraint<float>
+{
+public:
+	virtual void function(const float* decisions, const float* objectives, float* voilations = nullptr) {}
+};
+
+class Configurations : public Optimization::Configuration<float>
+{
+private:
+	const size_t decisions_ = 2;
+	const size_t objectives_ = 2;
+	const float upper_[2] = {-1, -1};
+	const float lower_[2] = {1, 1};
+	const bool integer_[2] = { false, false };
+
+public:
+	virtual size_t scales() const
+	{
+		return decisions_;
+	}
+
+	virtual size_t dimensions() const
+	{
+		return objectives_;
+	}
+
+	virtual size_t constraints() const
+	{
+		return 0;
+	}
+
+	virtual const float* uppers() const
+	{
+		return upper_;
+	}
+
+	virtual const float* lowers() const
+	{
+		return lower_;
+	}
+
+	virtual const bool* integers() const
+	{
+		return integer_;
+	}
+};
+
 
 void main()
 {
+	std::unique_ptr<Optimization::Configuration<float>> config = std::make_unique<Configurations>();
+	config->objective = std::make_unique<Objective>();
+	config->constraint = std::make_unique<Constraint>();
+
+	(*config)["cross"] = 0.8f;
+	(*config)["mutation"] = 0.8f;
+	(*config)["maximum"] = size_t(10000);
+	(*config)["division"] = size_t(100);
+	(*config)["population"] = size_t(10000);
+
+	std::unique_ptr<Optimization::Optimizer<float>> optimizer = std::make_unique<UNSGA<float>>();
+	auto results = optimizer->Optimize(config.get());
+	results->Write("results.txt");
+	/*
 	new Function();
 	std::unique_ptr<Optimizer::Objective> objective = std::make_unique<Function>();
 
@@ -95,4 +122,6 @@ void main()
 	clock_t end = clock();
 
 	std::cout << float(end - begin) / 1000 << std::endl;
+	*/
+	std::cout << "hello" << std::endl;
 };

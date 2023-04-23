@@ -13,10 +13,6 @@ UNSGA::Reference::Point::Point(const float * location, std::shared_ptr<Configura
     cblas_scopy(configuration->dimension, location, 1, &location_[0], 1);
 }
 
-UNSGA::Reference::Point::~Point()
-{
-}
-
 float UNSGA::Reference::Point:: distance(const UNSGA::vector& point) const
 {
     size_t dimension = configuration_->dimension;
