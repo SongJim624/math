@@ -13,7 +13,7 @@ namespace Optimization
 	class Objective
 	{
 	public:
-		virtual void function(const T* decisions, T* objectives) = 0;
+		virtual void operator() (const T* decisions, T* objectives) = 0;
 		virtual ~Objective() {}
 	};
 
@@ -21,7 +21,8 @@ namespace Optimization
 	class Constraint
 	{
 	public:
-		virtual void function(const T* decisions, const T* objectives, T* voilations = nullptr) = 0;
+		virtual void operator() (const T* decisions, const T* objectives, T* voilations = nullptr) = 0;
+		virtual ~Constraint() {}
 	};
 
 	template<typename T>
@@ -31,6 +32,7 @@ namespace Optimization
 		virtual std::vector<std::vector<T>> decisions() const = 0;
 		virtual std::vector<std::vector<T>> objectives() const = 0;
 		virtual void Write(const char*) const = 0;
+		virtual ~Result() {}
 	};
 
 	template<typename T>

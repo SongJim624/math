@@ -21,7 +21,7 @@ template<typename T>
 class UNSGA : public Optimization::Optimizer<T>
 {
 private:
-	std::unique_ptr<Configuration<T>> configuraiton_;
+	std::unique_ptr<Configuration<T>> configuration_;
 	std::unique_ptr<Population<T>> population_;
 	std::unique_ptr<Result<T>> results_;
 
@@ -31,11 +31,11 @@ public:
 };
 
 template<typename T>
-UNSGA<T>::UNSGA() : configuration_(nullptr), population_(nullptr) {
+UNSGA<T>::UNSGA() : configuration_(nullptr), population_(nullptr), results_(nullptr) {
 }
 
 template<typename T>
-const Optimization::Result<T>* NSGA<T>::Optimize(Optimization::Configuration<T>* configuration) {
+const Optimization::Result<T>* UNSGA<T>::Optimize(Optimization::Configuration<T>* configuration) {
 	configuration_.reset(std::make_unique<Configuration<T>>(configuration));
 	population_.reset(std::make_unique<Population<T>>(configuration_));
 

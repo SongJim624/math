@@ -1,12 +1,15 @@
+#include <time.h>
+#include "math.hpp"
 #ifndef _MATH_OPTIMIZATION_UNSGA_REPRODUCER_
 #define _MATH_OPTIMIZATION_UNSGA_REPRODUCER_
 template<typename T>
 class Reproducor
 {
 private:
-    size_t scale_;
-    std::vector<T, Allocator<T>> randoms_, weights_;
-	Configuration<T>* configuration_;
+    size_t dimension_, scale_, constraints_;
+    Vector<T> randoms_, weights_;
+//	Configuration<T>* configuration_;
+    T cross_, mutation_;
 
 private:
     void Random() {
@@ -81,65 +84,12 @@ private:
 
 private:
 	void Cross(const Individual<T>& father, const Individual<T>& mother, Individual<T>& son, Individual<T>& daughter) {
-        Random();
-        for (size_t i = 0; i < scale_; ++i)
-        {
-            randoms_[i] = (randoms_[i] < 0.5) ? 2.0 * randoms_[i] : 0.5 / (1.0 - randoms_[i]);
-        }
 
-        power(1 / (configuration_->cross + 1), randoms_);
-
-        add(1, randoms_, weights_);
-        multiply(weights_, father.decisions, son.decisions);
-        substract(1, randoms_, weights_);
-        multiply(weights_, mother.decisions, weights_);
-        add(weights_, son.decisions, son.decisions);
-
-        substract(1, randoms_, weights_);
-        multiply(weights_, father.decisions, daughter.decisions);
-        add(1, randoms_, weights_);
-        multiply(weights_, mother.decisions, weights_);
-        add(weights_, daughter.decisions, son.decisions);
-
-        cblas_sscal(scale_, 0.5, &son.decisions[0], 1);
-        cblas_sscal(scale_, 0.5, &daughter.decisions[0], 1);
     }
 
-	void Mutate(Individual<T>& individual) {
-        std::vector<bool> labels(scale_, false);
-
-        Random();
-
-        for (size_t i = 0; i < scale_; ++i)
-        {
-            if (randoms_[i] > 0.5)
-            {
-                randoms_[i] = 1 - randoms_[i];
-                labels[i] = true;
-            }
-        }
-
-        cblas_sscal(scale_, 2, &randoms_[0], 1);
-        power(1 / (configuration_->mutation + 1), randoms_);
-        add(-1, randoms_, randoms_);
-
-        for (size_t i = 0; i < scale_; ++i)
-        {
-            if (labels[i])
-            {
-                randoms_[i] = -randoms_[i];
-            }
-        }
-
-        substract(configuration_->upper(), configuration_->lower(), individual.decisions);
-        multiply(randoms_, individual.decisions, randoms_);
-        add(randoms_, configuration_->lower(), individual.decisions);
-    }
+	void Mutate(Individual<T>* individual) {}
 
 	void check(Individual<T>& individual);
-
-public:
-    Reproducor(Configuration<T>* configuration) {}
 
 public:
 	//worse individuals in the children set would be replaced by children
@@ -204,6 +154,18 @@ public:
     }
 };
 
+//function to generate a random vector within 0-1
+template<typename T>
+Vector<T> random(size_t length) {
+    Vector<T> results(length);
+
+    for(size_t i = 0 i < length; ++i) {
+        results[i] = rand() / (T) RAND_MAX;
+    }
+
+    return results;
+}
+
 template<typename T>
 void Reproducor<T>::check(Individual<T>& individual)
 {
@@ -217,5 +179,72 @@ void Reproducor<T>::check(Individual<T>& individual)
 		}
 	}
 }
+
+template<typename T>
+Reproducor<T>::Reproduce(Configuration<T>* configuration) {
+    cross_ = configuration->cross;
+    mutation_ = configuration->mutation;
+    srand((unsigned)time(nullptr));
+}
+
+template<typename T>
+void Reproducer<T>::Cross(std::array<const Individual<T>*, 2> parents, std::array<Individual<T>*> children) {
+    Vector<T> randoms = random(scale_);
+
+    for (size_t i = 0; i < scale_; ++i)
+    {
+        randoms[i] = (randoms[i] < 0.5) ? 2.0 * randoms[i] : 0.5 / (1.0 - randoms[i]);
+    }
+
+    power(1 / (configuration_->cross + 1), randoms_);
+
+    add(1, randoms_, weights_);
+    multiply(weights_, father.decisions, son.decisions);
+    substract(1, randoms_, weights_);
+    multiply(weights_, mother.decisions, weights_);
+    add(weights_, son.decisions, son.decisions);
+
+    substract(1, randoms_, weights_);
+    multiply(weights_, father.decisions, daughter.decisions);
+    add(1, randoms_, weights_);
+    multiply(weights_, mother.decisions, weights_);
+    add(weights_, daughter.decisions, son.decisions);
+
+    cblas_sscal(scale_, 0.5, &son.decisions[0], 1);
+    cblas_sscal(scale_, 0.5, &daughter.decisions[0], 1);
+}
+
+template<typename T>
+void Reproducer<T>::Mutation(Individual<T>* individual) {
+    std::vector<bool> labels(scale_, false);
+
+    Random();
+
+    for (size_t i = 0; i < scale_; ++i)
+    {
+        if (randoms_[i] > 0.5)
+        {
+            randoms_[i] = 1 - randoms_[i];
+            labels[i] = true;
+        }
+    }
+
+    cblas_sscal(scale_, 2, &randoms_[0], 1);
+    power(1 / (configuration_->mutation + 1), randoms_);
+    add(-1, randoms_, randoms_);
+
+    for (size_t i = 0; i < scale_; ++i)
+    {
+        if (labels[i])
+        {
+            randoms_[i] = -randoms_[i];
+        }
+    }
+
+    substract(configuration_->upper(), configuration_->lower(), individual.decisions);
+    multiply(randoms_, individual.decisions, randoms_);
+    add(randoms_, configuration_->lower(), individual.decisions);
+}
+
 
 #endif //!_MATH_OPTIMIZATION_UNSGA_REPRODUCER_

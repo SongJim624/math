@@ -6,7 +6,7 @@ template<typename T>
 class Point
 {
 private:
-    std::vector<T, Allocator<T>> location_;
+    Vector<T> location_;
 
 public:
 	size_t count;
@@ -35,13 +35,21 @@ private:
 
 public:
 	//perpendicular distance for a point to the reference line
-	T distance(const T* point) const {
-        auto temporary = location_;
-        axpy(-dot(location_, point) / dot(location_, &location_[0]), location_, temporary);
-        return sqrt(dot(temporary, &temporary[0]));
-    }
+	T distance(const T* point) const;
 
-    Point(const T* address, size_t length) : location_(std::vector<T, Allocator<T>>(address, address + length)) {
-    }
+    Point(const Vector<T>& location);
 };
+
+template<typename T>
+Point<T>::Point(const Vector<T>& locations) : location_(location) {
+}
+
+template<typename T>
+T Point<T>::distance(const T* point) const {
+    auto temporary = location_;
+    axpy(-dot(location_, point) / dot(location_, &location_[0]), location_, temporary);
+    return sqrt(dot(temporary, &temporary[0]));
+}
+
+
 #endif //!_MATH_OPTIMIZATION_UNSGA_POINT_
