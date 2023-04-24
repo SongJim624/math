@@ -15,21 +15,7 @@
 #include "configuration.hpp"
 #include "population.hpp"
 #include "reproducer.hpp"
-template<typename T>
-class Result : public Optimization::Result<T>
-{
-public:
-	virtual std::vector<std::vector<T>> decisions() const {
-		return {};
-	}
-
-	virtual std::vector<std::vector<T>> objectives() const {
-		return{};
-	}
-
-	virtual void Write(const char* filename) const {
-	}
-};
+#include "result.hpp"
 
 template<typename T>
 class UNSGA : public Optimization::Optimizer<T>
@@ -41,25 +27,22 @@ private:
 
 public:
 	UNSGA();
-
-	virtual const Optimization::Result<T>* Optimize(Optimization::Configuration<T>* configuration) {
-		if (configuraiton_) {
-			configuraiton_->Update(configuration);
-		}
-		else {
-			configuraiton_ = std::make_unique<Configuration<T>>(configuration);
-		}
-		
-		for (size_t i = 0; i < configuraiton_->maximum; ++i) {
-			population_->Evolve();
-		}
-
-		return results_.get();
-	}
+	virtual const Optimization::Result<T>* Optimize(Optimization::Configuration<T>* configuration);
 };
 
 template<typename T>
-UNSGA<T>::UNSGA(){
-	results_ = std::make_unique<Result<T>>();
+UNSGA<T>::UNSGA() : configuration_(nullptr), population_(nullptr) {
+}
+
+template<typename T>
+const Optimization::Result<T>* NSGA<T>::Optimize(Optimization::Configuration<T>* configuration) {
+	configuration_.reset(std::make_unique<Configuration<T>>(configuration));
+	population_.reset(std::make_unique<Population<T>>(configuration_));
+
+	for (size_t i = 0; i < configuraiton_->maximum; ++i) {
+		population_->Evolve();
+	}
+
+	return results_.get();
 }
 #endif //!_MATH_OPTIMIZATION_UNSGA_
