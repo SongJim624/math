@@ -8,7 +8,7 @@ private:
 	size_t decisions_ = 2;
 
 public:
-	virtual void function(const float* decisions, float* objectives)
+	virtual void operator() (const float* decisions, float* objectives)
 	{
 		objectives[0] = 0;
 
@@ -34,7 +34,7 @@ public:
 class Constraint : public Optimization::Constraint<float>
 {
 public:
-	virtual void function(const float* decisions, const float* objectives, float* voilations = nullptr) {}
+	virtual void operator() (const float* decisions, const float* objectives, float* voilations = nullptr) {}
 };
 
 class Configurations : public Optimization::Configuration<float>
@@ -88,7 +88,7 @@ void main()
 	(*config)["cross"] = 0.8f;
 	(*config)["mutation"] = 0.8f;
 	(*config)["maximum"] = size_t(10000);
-	(*config)["division"] = size_t(100);
+	(*config)["division"] = size_t(10);
 	(*config)["population"] = size_t(10000);
 
 	std::unique_ptr<Optimization::Optimizer<float>> optimizer = std::make_unique<UNSGA<float>>();

@@ -7,27 +7,34 @@
 template<typename T>
 class Individual
 {
-private:
-	Vector<T> decisions_, objectives_, voilations_;
-
 public:
 	static size_t dimensions, scales, constraints;
 
 public:
-	T *decisions, *objectives, *voilations;
-	std::list<const Individual*> dominates;
+	Vector<T> decisions, objectives, voilations;
+
+	std::list<Individual<T>*> dominates;
 	size_t dominated;
 
 public:
     Individual(const Vector<T>& decisions);
-	~Individual();
 };
 
 template<typename T>
-int dominate(size_t dimension, const T* lhs, const T* rhs) {
+size_t Individual<T>::dimensions = 0;
+
+template<typename T>
+size_t Individual<T>::scales = 0;
+
+template<typename T>
+size_t Individual<T>::constraints = 0;
+
+
+template<typename T>
+int dominate(size_t dimension, T* lhs, T* rhs) {
 	std::array<size_t, 3> counts{ 0, 0, 0 };
 
-	auto compare = [](T lhs, T rhs, T tol) {
+	auto compare = [](T lhs, T rhs, T tol = 1e-6) {
 		return std::abs(lhs - rhs) < tol ? 1 : (lhs > rhs ? 0 : 2);
 	};
 
@@ -40,35 +47,25 @@ int dominate(size_t dimension, const T* lhs, const T* rhs) {
 
 //seems not necessary, just use dimension = 1 in the previous case
 //dominate relations of the voilation
-template<typename T>
-int dominate(T lhs, T rhs) {
-	return lhs == 0 ? (rhs == 0 ? 0 : 1) : (rhs == 0 ? -1 : int(compare(lhs, rhs)) - 1);
-}
+//template<typename T>
+//int dominate(T lhs, T rhs) {
+//	return lhs == 0 ? (rhs == 0 ? 0 : 1) : (rhs == 0 ? -1 : int(compare(lhs, rhs)) - 1);
+//}
 
 //non dominated compare
 template<typename T>
-int operator < (const Individual<T>& lhs, const Individual<T>& rhs) {
-	int status = dominate(1, lhs.voilations, rhs.voilations);
+int operator < (Individual<T>& lhs, Individual<T>& rhs) {
+	//need to further consider the multi non-linear constraints
+	int status = Individual<T>::constraints == 0 ? 0 : dominate(1, &lhs.voilations[0], &rhs.voilations[0]);
 
     return status != 0 ? status :
-        dominate(Individual<T>::dimensions, lhs.objectives, rhs.individual.objectives);
+        dominate(Individual<T>::dimensions, &lhs.objectives[0], &rhs.objectives[0]);
 }
 
 template<typename T>
-Indivudial<T>::Individual(const Vector<T>& decision) : decisions_(decision), dominates({}), dominated(0) {
-	objectives_.resize(Individual<T>::dimension);
-	voilations_.resize(Individual<T>::constraints);
-
-	decisions = &decisions_[0];
-	objectives = &objectives_[0];
-	voilations = Individual<T>::constriants == 0 ? nullptr : &constraints_[0];
-}
-
-template<typename T>
-Individual<T>::~Individual() {
-	decisions = nullptr;
-	objectives = nullptr;
-	voilations = nullptr;
+Individual<T>::Individual(const Vector<T>& decision) : decisions(decision), dominates({}), dominated(0) {
+	objectives.resize(Individual<T>::dimensions, 0);
+	voilations.resize(Individual<T>::constraints, 0);
 }
 
 template<typename T>

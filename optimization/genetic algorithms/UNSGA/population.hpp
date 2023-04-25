@@ -1,7 +1,7 @@
 #include "individual.hpp"
 #include "reproducer.hpp"
 #include "reference plain.hpp"
-#inlcude "configuration.hpp"
+#include "configuration.hpp"
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_POPULATION_
 #define _MATH_OPTIMIZATION_UNSGA_POPULATION_
@@ -23,7 +23,10 @@ private:
     void fitness(Individual<T>& individual);
 
 public:
+    void Evolve();
+
 	Population(Configuration<T>* configuration);
+    ~Population();
 };
 
 template<typename T>
@@ -33,11 +36,11 @@ Population<T>::Population(Configuration<T>* configuration) {
     selector_ = std::make_unique<Reference<T>>(configuration);
     reproducer_ = std::make_unique<Reproducor<T>>(configuration);
 
-    individuals_.resize(configuration_->population);
+    individuals_.resize(configuration->population);
     size_t count = 0;
 
     for(auto& individual : individuals_) {
-        individual = std::make_unique<Individual<T>>(configuration_->initialization[count++]);
+        individual = std::make_unique<Individual<T>>(configuration->initialization[count++]);
         fitness(*individual);
     }
 }
@@ -45,7 +48,7 @@ Population<T>::Population(Configuration<T>* configuration) {
 template<typename T>
 Population<T>::~Population() {
     objective_ = nullptr;
-    contraint_ = nullptr;
+    constraint_ = nullptr;
 }
 
 template<typename T>
@@ -54,7 +57,7 @@ void Population<T>::fitness(Individual<T>& individual) {
         (*constraint_)(&individual.decisions[0], &individual.objectives[0], &individual.voilations[0]);
 }
 
-template<tyepname T>
+template<typename T>
 Layer<T> Population<T>::sort() {
     Layer<T> results;
 
@@ -113,7 +116,9 @@ Layer<T> Population<T>::sort() {
 
 template<typename T>
 void Population<T>::Evolve() {
-    reproducer_.Reproduce(selector_.Select(sort()));
+    auto layer = sort();
+    auto temp = selector_->Select(layer);
+    reproducer_->Reproduce(temp);
 }
 
 #endif //!_MATH_OPTIMIZATION_UNSGA_POPULATION_

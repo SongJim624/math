@@ -1,6 +1,8 @@
 #include "configuration.hpp"
 #include "individual.hpp"
 #include "point.hpp"
+#include <map>
+#include <list>
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_REFERENCE_
 #define _MATH_OPTIMIZATION_UNSGA_REFERENCE_
@@ -8,7 +10,7 @@ template<typename T>
 class Reference
 {
 private:
-using Cost = std::pair<std::map<Individual<T>*, T*>, std::map<Individual<T>*, T*>> ;
+using Cost = std::pair<std::map<Individual<T>*, T*>, std::map<Individual<T>*, T*>>;
 
 private:
     int dimension_;
@@ -19,37 +21,16 @@ private:
 private:
 //archievement scalar function
     T Scale(size_t dimension, const Vector<T>& objectives);
-	void  Ideal(const std::list<Individual<T>*>& individuals);
+	void  Ideal(const Series<T>& individuals);
 	void Interception(const Series<T>& individuals);
 
-	Cost Normalize(const std::list<Individual<T>*> solution, const std::list<Individual<T>*>& critical);
+	Cost Normalize(const Series<T> solution, const Series<T>& critical);
 	void Associate(const Cost& costs);
-	void Dispense(size_t needed, Series& solution, Series& critical);
+	void Dispense(size_t needed, Series<T>& solution, Series<T>& critical);
 
 public:
-	Reference(Configuration<T>* configuration) : dimension_(configuration->dimension) {
-        size_t amount = Combination(dimension_, configuration->division);
-
-        ideal_.resize(dimension_, +INFINITY);
-        interception_.resize(dimension_, 1);
-        costs_.resize(amount * dimension_, 0);
-
-        std::vector<T*> locations(amount, nullptr);
-        for(size_t i = 0; i < amount; ++i){
-            locations[i] = &costs_[i * dimension_];
-        }
-
-        Plain(dimension_, configuration->division, locations);
-
-        for (size_t i = 0; i < amount; ++i)
-        {
-            cblas_sscal(dimension_, 1.0 / configuration->division, locations[i], 1);
-            points_.push_back(std::make_unique<Point>(locations[i], dimension_));
-        }
-    }
-
-public:
-	std::pair<Series<T>, Series<T>> Select(Layer<T>& layers);
+    std::pair<Series<T>, Series<T>> Select(Layer<T>& layers);
+    Reference(Configuration<T>* configuration);
 };
 
 size_t Combination(size_t dimension, size_t division) {
@@ -92,7 +73,7 @@ void Plain(size_t dimension, size_t division, std::vector<T*>& points) {
 
 template<typename T>
 T Reference<T>::Scale(size_t dimension, const Vector<T>& objectives) {
-    Vector<T> weights(dimnesion_, 1e-6);
+    Vector<T> weights(dimension_, 1e-6);
     weights[dimension] = 1;
 
 //further optimization opportunity
@@ -120,23 +101,22 @@ void Reference<T>::Interception(const Series<T>& individuals) {
     std::vector<std::map<T, Individual<T>*>> rank(dimension_);
     for (auto individual : individuals) {
         for (size_t objective = 0; objective < dimension_; ++objective) {
-            auto temporary = individual->objectives - ideal_;
-            rank[objective].insert({ Scale(objective, temporary), individual });
+            rank[objective].insert({ Scale(objective, individual->objectives - ideal_), individual });
         }
     }
 
     Vector<T> matrix;
     for(size_t i = 0; i < dimension_; ++i)
     {
-        auto temporary = rank[i].begin()->second->objectives - ideal_;
-        matrix.insert(matrix.end(), temporary);
+        Vector<T> temporary = rank[i].begin()->second->objectives - ideal_;
+        matrix.insert(matrix.end(), temporary.begin(), temporary.end());
     }
 
     std::fill(interception_.begin(), interception_.end(), 1);
     std::vector<int>ipiv(dimension_);
     int info = 0, column = 1;
     T one = 1;
-
+    /*
     if(std::is_same<T, float>) {
         sgesv(&dimension_, &column, &matrix[0], &dimension_, &ipiv[0], &interception_[0], &dimension_, &info);
         vsDivI(dimension_, &one, 0, &interception_[0], 1, &interception_[0], 1);
@@ -146,6 +126,7 @@ void Reference<T>::Interception(const Series<T>& individuals) {
         dgesv(&dimension_, &column, &matrix[0], &dimension_, &ipiv[0], &interception_[0], &dimension_, &info);
         vdDivI(dimension_, &one, 0, &interception_[0], 1, &interception_[0], 1);
     }
+    */
 }
 
 template<typename T>
@@ -154,25 +135,20 @@ Reference<T>::Cost Reference<T>::Normalize(const std::list<Individual<T>*> solut
     Interception(solution);
 
     Cost result({{}, {}});
+
     size_t count = 0;
-
-    auto normalize = [this](const std::vector<T, Allocator<T>>& objectives, T* cost) {
-        (objectives - ideal) / interceptions
-        return cost;
-    };
-
     for(const auto& individual : solution)
     {
-        T* cost = costs_[count * dimension_];
-        result.first.insert({ individual, normalize(individual->objectives, cost) });
-        count += dimension_;
+        auto& cost = costs_[count++];
+        cost = (individual->objectives - ideal_) / interception_;
+        result.first.insert({ individual, &cost[0] });
     }
 
     for (const auto& individual : critical)
     {
-        T* cost = costs_[count * dimension_];
-        result.second.insert({ individual, normalize(individual->objectives, cost) });
-        count += dimension_;
+        auto& cost = costs_[count++];
+        cost = (individual->objectives - ideal_) / interception_;
+        result.second.insert({ individual, &cost[0] });
     }
 
     return result;
@@ -182,25 +158,25 @@ template<typename T>
 void Reference<T>::Associate(const Cost& costs) {
     for (const auto& [individual, cost] : costs.first)
     {
-        std::map<T, Point*> rank;
+        std::map<T, Point<T>*> rank;
 
         for (auto& point : points_)
         {
-            rank.insert({ point->distance(cost), point });
+            rank.insert({ point->distance(cost), point.get()});
         }
 
         rank.begin()->second->count++;
     }
 
-    std::map<Point*, std::map<T, Individual*>> association;
+    std::map<Point<T>*, std::map<T, Individual<T>*>> association;
 
     for (const auto& [individual, cost] : costs.second)
     {
-        std::map<float, Point*> rank;
+        std::map<T, Point<T>*> rank;
 
         for (auto& point : points_)
         {
-            rank.insert({ point->distance(cost), point });
+            rank.insert({ point->distance(cost), point.get()});
         }
 
         auto nearest = rank.begin();
@@ -220,7 +196,7 @@ template<typename T>
 void Reference<T>::Dispense(size_t needed, Series<T>& solution, Series<T>& critical) {
     for (size_t i = 0; i < needed; ++i)
     {
-        points_.sort([](std::unique_ptr<Point<T>> lhs, std::unique_ptr<Point<T>> rhs) {
+        points_.sort([](std::unique_ptr<Point<T>>& lhs, std::unique_ptr<Point<T>>& rhs) {
             bool left = lhs->associated.empty();
             bool right = rhs->associated.empty();
             return left ? false : (right ? true : lhs->count < rhs->count);});
@@ -279,7 +255,7 @@ std::pair<Series<T>, Series<T>> Reference<T>::Select(Layer<T>& layers) {
     //Niche technology needed
     if (selection > elites.size()) {
         Associate(Normalize(elites, *layers.begin()));
-        Dispense(selection - elites.szie(), elites, *layers.begin());
+        Dispense(selection - elites.size(), elites, *layers.begin());
     }
 
     //nove the left one to the population for cross and mutation operation
@@ -294,23 +270,23 @@ std::pair<Series<T>, Series<T>> Reference<T>::Select(Layer<T>& layers) {
 
 template<typename T>
 Reference<T>::Reference(Configuration<T>* configuration) {
-    dimension_ = configuration->dimension;
+    dimension_ = configuration->dimensions;
     size_t amount = Combination(dimension_, configuration->division);
 
     ideal_.resize(dimension_, +INFINITY);
     interception_.resize(dimension_, 1);
-    costs_.resize(amount * dimension_, 0);
+    costs_.resize(amount, Vector<T>(dimension_));
 
     std::vector<T*> locations(amount, nullptr);
     for(size_t i = 0; i < amount; ++i){
-        locations[i] = &costs_[i * dimension_];
+        locations[i] = &costs_[i][0];
     }
 
     Plain(dimension_, configuration->division, locations);
 
     for (size_t i = 0; i < amount; ++i) {
-        costs_[i] *= (T) 1 / configuraiton->division;
-        points_.push_back(std::make_unique<Point>(costs_[i]));
+ //       costs_[i] = (T) 1 / configuration->division * costs_[i];
+//        points_.push_back(std::make_unique<Point<T>>(costs_[i]));
     }
 }
 #endif //!_MATH_OPTIMIZATION_UNSGA_

@@ -36,10 +36,13 @@ UNSGA<T>::UNSGA() : configuration_(nullptr), population_(nullptr), results_(null
 
 template<typename T>
 const Optimization::Result<T>* UNSGA<T>::Optimize(Optimization::Configuration<T>* configuration) {
-	configuration_.reset(std::make_unique<Configuration<T>>(configuration));
-	population_.reset(std::make_unique<Population<T>>(configuration_));
+	configuration_.reset(nullptr);
+	population_.reset(nullptr);
 
-	for (size_t i = 0; i < configuraiton_->maximum; ++i) {
+	configuration_ = std::make_unique<Configuration<T>>(configuration);
+	population_ = std::make_unique<Population<T>>(configuration_.get());
+
+	for (size_t i = 0; i < configuration_->maximum; ++i) {
 		population_->Evolve();
 	}
 

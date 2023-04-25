@@ -8,7 +8,7 @@
 #include <array>
 #include <cassert>
 #include <mkl.h>
-#include "math.hpp"
+#include "D:\\Windows\\Documents\\GitHub\\mathematical-tools\\basic\\eigen like\\vector.hpp"
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_CONFIGURATION_
 #define _MATH_OPTIMIZATION_UNSGA_CONFIGURATION_
@@ -25,13 +25,9 @@ public:
 public:
 	size_t maximum, division, population;
 
-	std::vector<std::vector <T, Allocator<T>>> initialization;
+	std::vector<Vector<T>> initialization;
 
 	T cross, mutation, threshold;
-	VSLStreamStatePtr stream;
-
-public:
-	void Update(Optimization::Configuration<T>* configuration);
 
 public:
 	Configuration(Optimization::Configuration<T>* configuration);
@@ -39,29 +35,30 @@ public:
 };
 
 template<typename T>
-Configuration<T>::Configuration(Optimization::Configuration<T>* configuration)
-	: dimensions(configuration->dimensions()), scales(configuration->scales()), constraints(configuration->constraints()),
-	uppers(configuration->uppers()), lowers(configuration->lowers()), integers(configuration->integers()),
-	objective(configuration->objective.get()), constraint(configuration->constraint.get())
-{
+Configuration<T>::Configuration(Optimization::Configuration<T>* configuration) {
+	dimensions = configuration->dimensions();
+	scales = configuration->scales();
+	constraints = configuration->constraints();
+
+	uppers = configuration->uppers();
+	lowers = configuration->lowers();
+	integers = configuration->integers();
+
+	objective = configuration->objective.get();
+	constraint = configuration->constraint.get();
+
 	const auto& config = *configuration;
 
 	maximum = std::get<size_t>(config["maximum"]);
+	division = std::get<size_t>(config["division"]);
+	population = std::get<size_t>(config["population"]);
 
 	cross = std::get<T>(config["cross"]);
 	mutation = std::get<T>(config["mutation"]);
-
-	vslNewStream(&stream, VSL_BRNG_MCG31, 1);
 }
 
 template<typename T>
-Configuration<T>::~Configuration()
-{
-	vslDeleteStream(&stream);
-}
-
-template<typename T>
-void Configuration<T>::Update(Optimization::Configuration<T>* configuration) {
+Configuration<T>::~Configuration(){
 }
 #endif //!_MATH_OPTIMIZATION_UNSGA_CONFIGURATION_
 

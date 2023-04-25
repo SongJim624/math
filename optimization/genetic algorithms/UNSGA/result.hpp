@@ -8,7 +8,7 @@
 #ifndef _MATH_OPTIMIZTION_UNSGA_RESULTS_
 #define _MATH_OPTIMIZTION_UNSGA_RESULTS_
 template<typename T>
-class Result : public Optimiztion::Result<T>
+class Result : public Optimization::Result<T>
 {
 
 };
