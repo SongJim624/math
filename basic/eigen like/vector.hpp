@@ -5,9 +5,11 @@
 
 #ifndef _MATH_BASIC_EIGENLIKE_VECTOR_
 #define _MATH_BASIC_EIGENLIKE_VECTOR_
-
 template<typename T>
-concept Value = std::unsigned_integral<T>;
+concept Expression requires (T x) {
+	x::base;
+	x[];
+};
 
 template<typename T>
 class Vector
@@ -34,25 +36,23 @@ public:
 	Vector() {};
 	Vector(size_t length, T value = 0) { data_.resize(length, value); };
 	Vector(const Vector<T>&) = default;
-	template<class Expression> Vector(const Expression& expression);
+	template<Expression E> Vector(const E& expression);
 
 public:
 	void resize(auto length, auto value = 0) { data_.resize(length, value);};
 
 public:
-	template<class Expression> Vector& operator = (const Expression& expression);
+	template<Expression E> Vector& operator = (const E& expression);
 };
 
 template<typename T>
-template<typename Expression>
-Vector<T>::Vector(const Expression& expression) {
-/*
+template<Expression E>
+Vector<T>::Vector(const E& expression) {
 	data_.resize(expression.size());
 
 	for (size_t i = 0; i < data_.size(); ++i) {
 		data_[i] = expression[i];
 	}
-	*/
 }
 
 template<typename T>
@@ -76,87 +76,6 @@ Vector<T>& Vector<T>::operator = (const Expression& expression) {
 
 	return* this;
 }
-
-template<class L, class R>
-class Add
-{
-public:
-	const L& lhs;
-	const R& rhs;
-
-	using base = L::base;
-
-	size_t size() const { return lhs.size(); };
-public:
-	base operator [](size_t index) const {
-		return lhs[index] + rhs[index];
-	}
-};
-
-template<class L, class R>
-class Substract
-{
-public:
-	const L& lhs;
-	const R& rhs;
-
-	using base = L::base;
-
-	size_t size() const { return lhs.size(); };
-public:
-	auto operator [](size_t index) const {
-		return lhs[index] - rhs[index];
-	}
-};
-
-template<class L, class R>
-class Multiply
-{
-public:
-	const L& lhs;
-	const R& rhs;
-
-	using base = L::base;
-
-	size_t size() const { return lhs.size(); };
-
-
-public:
-	base operator [](size_t index) const {
-		return lhs[index] * rhs[index];
-	}
-};
-
-template<class L, class R>
-class Divide
-{
-public:
-	const L& lhs;
-	const R& rhs;
-
-	size_t size() const { return lhs.size(); };
-	using base = L::base;
-
-
-public:
-	auto operator [](size_t index) const {
-		return lhs[index] / rhs[index];
-	}
-};
-
-template<typename T, class V>
-class Scale
-{
-public:
-	const T& scalar;
-	const V& vector;
-	size_t size() const { return vector.size(); };
-
-public:
-	T operator [](size_t index) const {
-		return  scalar * vector[index];
-	}
-};
 
 template<typename T, class V>
 class Power
@@ -204,9 +123,6 @@ auto operator ^ (const V& lhs, const T& rhs) {
 	return Power<T, V>{rhs, lhs};
 }
 
-template<typename T>
-T dot(const Vector<T>& lhs, const Vector<T>& rhs) {
-	return 0;
-}
+
 #endif //!_MATH_OPTIMIZATION_UNSGA_MATRIX_
 
