@@ -44,7 +44,7 @@ namespace Optimization
 	public:
 		std::variant<size_t, T, std::vector<T>> operator [] (const std::string& name) const {
 			auto iter = dictionary_.find(name);
-			assert(iter != dictionary_.end(), "item " + name + " not found!");
+			assert((void("item " + name + " not found!"), iter != dictionary_.end()));
 			return iter->second;
 		}
 

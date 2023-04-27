@@ -11,14 +11,14 @@ public:
     using base = L::base;
 
 public:
-    Divide(const L& lhs, const L& rhs);
+    Divide(const L& lhs, const R& rhs);
 	size_t size() const;
 	base operator [](size_t index) const;
 };
 
 template<class L, class R>
-Divide<L, R>::Divide(const L& lhs, const L& rhs) : lhs(lhs), rhs(rhs) {
-    assert(lhs.size() == rhs.size(), "size not same, cannot Divide together!");
+Divide<L, R>::Divide(const L& lhs, const R& rhs) : lhs(lhs), rhs(rhs) {
+	assert((void("size not same, cannot add together!"), lhs.size() == rhs.size()));
 }
 
 template<class L, class R>

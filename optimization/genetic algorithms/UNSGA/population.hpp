@@ -6,8 +6,14 @@
 #ifndef _MATH_OPTIMIZATION_UNSGA_POPULATION_
 #define _MATH_OPTIMIZATION_UNSGA_POPULATION_
 template<typename T>
+class Result;
+
+template<typename T>
 class Population
 {
+private:
+    friend class Result<T>;
+
 private:
     Optimization::Objective<T> * objective_;
     Optimization::Constraint<T> * constraint_;
@@ -24,6 +30,7 @@ private:
 
 public:
     void Evolve();
+    Series<T> Elite();
 
 	Population(Configuration<T>* configuration);
     ~Population();
@@ -42,6 +49,7 @@ Population<T>::Population(Configuration<T>* configuration) {
     for(auto& individual : individuals_) {
         individual = std::make_unique<Individual<T>>(configuration->initialization[count++]);
         fitness(*individual);
+        population_.push_back(individual.get());
     }
 }
 
@@ -53,8 +61,8 @@ Population<T>::~Population() {
 
 template<typename T>
 void Population<T>::fitness(Individual<T>& individual) {
-        (*objective_)(&individual.decisions[0], &individual.objectives[0]);
-        (*constraint_)(&individual.decisions[0], &individual.objectives[0], &individual.voilations[0]);
+    (*objective_)(&individual.decisions[0], &individual.objectives[0]);
+    (*constraint_)(&individual.decisions[0], &individual.objectives[0], Individual<T>::constraints == 0 ? nullptr : &individual.voilations[0]);
 }
 
 template<typename T>
@@ -116,9 +124,17 @@ Layer<T> Population<T>::sort() {
 
 template<typename T>
 void Population<T>::Evolve() {
-    auto layer = sort();
-    auto temp = selector_->Select(layer);
-    reproducer_->Reproduce(temp);
+    population_ = reproducer_->Reproduce(selector_->Select(sort()));
+
+    for (auto& individual : individuals_)
+    {
+        fitness(*individual);
+    }
 }
 
+template<typename T>
+Series<T> Population<T>::Elite() 
+{
+    return *sort().begin();
+}
 #endif //!_MATH_OPTIMIZATION_UNSGA_POPULATION_

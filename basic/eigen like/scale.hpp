@@ -13,9 +13,7 @@ public:
 public:
     Scale(const T& scalar, const V& vector);
 	size_t size() const;
-	base operator [](size_t index) const {
-		return lhs[index] + rhs[index];
-	}
+	base operator [](size_t index) const;
 };
 
 template<typename T, class V>

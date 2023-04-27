@@ -11,14 +11,14 @@ public:
     using base = L::base;
 
 public:
-    Add(const L& lhs, const L& rhs);
+    Add(const L& lhs, const R& rhs);
 	size_t size() const;
 	base operator [](size_t index) const;
 };
 
 template<class L, class R>
-Add<L, R>::Add(const L& lhs, const L& rhs) : lhs(lhs), rhs(rhs) {
-    assert(lhs.size() == rhs.size(), "size not same, cannot add together!");
+Add<L, R>::Add(const L& lhs, const R& rhs) : lhs(lhs), rhs(rhs) {
+    assert((void("size not same, cannot add together!"), lhs.size() == rhs.size()));
 }
 
 template<class L, class R>

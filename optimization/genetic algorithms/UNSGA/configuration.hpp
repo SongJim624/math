@@ -7,8 +7,7 @@
 #include <memory>
 #include <array>
 #include <cassert>
-#include <mkl.h>
-#include "D:\\Windows\\Documents\\GitHub\\mathematical-tools\\basic\\eigen like\\vector.hpp"
+#include "D:\\Windows\\Documents\\GitHub\\mathematical-tools\\basic\\eigen like\\math.hpp"
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_CONFIGURATION_
 #define _MATH_OPTIMIZATION_UNSGA_CONFIGURATION_
@@ -53,8 +52,14 @@ Configuration<T>::Configuration(Optimization::Configuration<T>* configuration) {
 	division = std::get<size_t>(config["division"]);
 	population = std::get<size_t>(config["population"]);
 
+	initialization.resize(population);
+	for (size_t i = 0; i < population; ++i) {
+		initialization[i] = random<T>(scales, Vector<T>(scales, uppers), Vector<T>(scales, lowers));
+	}
+
 	cross = std::get<T>(config["cross"]);
 	mutation = std::get<T>(config["mutation"]);
+	threshold = 0.8;
 }
 
 template<typename T>

@@ -21,14 +21,14 @@ public:
 };
 
 template<typename T>
-Point<T>::Point(const Vector<T>& location) : location_(location) {
+Point<T>::Point(const Vector<T>& location) : location_(location) , count(0)
+{
 }
 
 template<typename T>
 T Point<T>::distance(const Vector<T>& point) const {
     auto temporary = location_;
-
-//    temporary = (- dot(location_, point) / dot(location_, location_)) * location_ + temporary;
+    temporary = (-dot(location_, point) / dot(location_, location_)) * location_ + temporary;
     return sqrt(dot(temporary, temporary));
 }
 #endif //!_MATH_OPTIMIZATION_UNSGA_POINT_
