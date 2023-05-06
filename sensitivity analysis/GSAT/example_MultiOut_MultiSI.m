@@ -6,7 +6,7 @@
 clear all
 home
 
-% create a new project 
+% create a new project
 pro = pro_Create();
 
 % add 5 input variables with a pdf uniformely distributed in [0 1]
@@ -26,11 +26,11 @@ pro = pro_AddInput(pro, @()pdf_Sobol([0 1]), 'param4');
 pro = pro_AddInput(pro, @()pdf_Sobol([0 1]), 'param5');
 
 % set the model, and name it as 'model', to the project 
-% the model is well-known as "Sobol’ function"
+% the model is well-known as "Sobolï¿½ function"
 pro = pro_SetModel(pro, @(x)TestModel(x,[0 1 9 9 9]), 'TestModel');
 
 % calculate the real analytical values of sensitivity coefficients for the 
-% model "Sobol’ function" (3.0.1).
+% model "Sobolï¿½ function" (3.0.1).
 [D, Si] = SATestModel([0 1 9 9 9]);
 
 % set the number of samples for the quasi-random Monte Carlo simulation

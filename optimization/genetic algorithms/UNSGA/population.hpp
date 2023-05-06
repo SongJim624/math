@@ -68,6 +68,66 @@ void Population<T>::fitness(Individual<T>& individual) {
 template<typename T>
 Layer<T> Population<T>::sort() {
     Layer<T> results;
+// improvement of the non dominate sort
+// if an individual is dominated by another which is in the upper layer, 
+// it must be dominated by the other individuals in the upper layer
+    for(auto& individual : individuals_)
+    {
+        if(!results.empty())
+        {
+            for(auto& layer = resutlts.begin(); layer != results.end(); ++layer)
+            {
+                switch(layer->begin() < individual)
+                {
+                case 0:
+                {
+                    layer->push_back(individual->get());
+                    break;
+                }
+                case 1:
+                {
+                    if(std::next(layer) == results.end())
+                    {
+                        results.push_back({individual->get()})
+                        break;
+                    }
+                }
+                case -1:
+                {
+                    results.insert({individual->get()});
+                    break;
+                }
+                }
+            }
+        }
+        else
+        {
+            results.push_back({individual->get()});
+        }
+    }
+
+    return results;
+}
+
+template<typename T>
+void Population<T>::Evolve() {
+    population_ = reproducer_->Reproduce(selector_->Select(sort()));
+
+    for (auto& individual : individuals_)
+    {
+        fitness(*individual);
+    }
+}
+
+template<typename T>
+Series<T> Population<T>::Elite()
+{
+    return *sort().begin();
+}
+/*
+template<typename T>
+Layer<T> Population<T>::sort() {
+    Layer<T> results;
 
     for (auto individual = population_.begin(); individual != population_.end(); ++individual)
     {
@@ -121,20 +181,5 @@ Layer<T> Population<T>::sort() {
 
     return results;
 }
-
-template<typename T>
-void Population<T>::Evolve() {
-    population_ = reproducer_->Reproduce(selector_->Select(sort()));
-
-    for (auto& individual : individuals_)
-    {
-        fitness(*individual);
-    }
-}
-
-template<typename T>
-Series<T> Population<T>::Elite() 
-{
-    return *sort().begin();
-}
+*/
 #endif //!_MATH_OPTIMIZATION_UNSGA_POPULATION_

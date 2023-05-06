@@ -1,27 +1,20 @@
 #ifndef _DISTRIBUTION_
 #define _DISTRIBUTION_
-class Distribution
+namespace Math
 {
-public:
-    class Sampler;
+    template<typename T>
+    class Distribution
+    {
+    public:
+        virtual void density(size_t, const T*, T*) = 0;
+        virtual void probability(size_t, const T*, T*) = 0;
+    };
 
-public:
-    virtual void density(size_t length, const float * locations, float * values) = 0;
-    virtual void probability(size_t length, const float * locations, float * values) = 0;
-    virtual void sampling(size_t length, float values) = 0;
-
-public:
-    virtual ~Distribution(){};
-};
-
-class Distribution::Sampler
-{
-public:
-    virtual void sampling(size_t lenght, float * samples) = 0;
-
-public:
-    virtual ~Sampler(){};
-};
-
-//Distribution * factory();
+    template<class T>
+    class Sampler
+    {
+    public:
+        virtual void sample(size_t, T*) = 0;
+    };
+}
 #endif //!_DISTRIBUTION_

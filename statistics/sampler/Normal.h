@@ -2,7 +2,7 @@
 
 class Box_Muller : public Sampling
 {
-private:    
+private:
     float mu, sigma;
     int type;
 

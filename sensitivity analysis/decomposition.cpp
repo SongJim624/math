@@ -1,5 +1,6 @@
-void decomposite(float * inputs, float * outputs)
+
+template<typename T>
+void decomposition(size_t length, T* inputs, T* outputs)
 {
-    size_t row, column;
-    float * temporary;
+
 }

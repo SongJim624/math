@@ -6,9 +6,10 @@
 #ifndef _MATH_BASIC_EIGENLIKE_VECTOR_
 #define _MATH_BASIC_EIGENLIKE_VECTOR_
 template<typename T>
-concept Expression = requires (T x) {
-	//T::base;
+concept Expression = requires (T x, size_t index) {
+	typename T::base;
 	x.size();
+	x[index];
 };
 
 template<typename T>
