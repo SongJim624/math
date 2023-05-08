@@ -30,16 +30,18 @@ public:
 };
 
 template<typename T>
-UNSGA<T>::UNSGA() : configuration_(nullptr), population_(nullptr), results_(nullptr) {
+UNSGA<T>::UNSGA() : configuration_(nullptr), population_(nullptr), results_(nullptr)
+{
 }
 
 template<typename T>
-const Optimization::Result<T>* UNSGA<T>::Optimize(Optimization::Configuration<T>* configuration) {
+const Optimization::Result<T>* UNSGA<T>::Optimize(Optimization::Configuration<T>* configuration)
+{
 	configuration_.reset(nullptr);
 	population_.reset(nullptr);
 	results_.reset(nullptr);
 
-	srand((unsigned int)time(nullptr));
+	srand(0);
 
 	Individual<T>::dimensions = configuration->dimensions();
 	Individual<T>::scales = configuration->scales();

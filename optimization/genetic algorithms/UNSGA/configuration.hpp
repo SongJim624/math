@@ -53,7 +53,8 @@ Configuration<T>::Configuration(Optimization::Configuration<T>* configuration) {
 	population = std::get<size_t>(config["population"]);
 
 	initialization.resize(population);
-	for (size_t i = 0; i < population; ++i) {
+	for (size_t i = 0; i < population; ++i)
+	{
 		initialization[i] = random<T>(scales, Vector<T>(scales, uppers), Vector<T>(scales, lowers));
 	}
 

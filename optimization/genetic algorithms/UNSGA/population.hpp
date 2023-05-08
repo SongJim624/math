@@ -21,8 +21,7 @@ private:
     std::unique_ptr<Reference<T>> selector_;
     std::unique_ptr<Reproducor<T>> reproducer_;
 
-	std::vector<std::unique_ptr<Individual<T>>> individuals_;
-	Series<T> population_;
+	std::list<std::unique_ptr<Individual<T>>> individuals_;
 
 private:
 	Layer<T> sort();
@@ -37,19 +36,17 @@ public:
 };
 
 template<typename T>
-Population<T>::Population(Configuration<T>* configuration) {
+Population<T>::Population(Configuration<T>* configuration)
+{
     objective_ = configuration->objective;
     constraint_ = configuration->constraint;
     selector_ = std::make_unique<Reference<T>>(configuration);
     reproducer_ = std::make_unique<Reproducor<T>>(configuration);
 
-    individuals_.resize(configuration->population);
-    size_t count = 0;
-
-    for(auto& individual : individuals_) {
-        individual = std::make_unique<Individual<T>>(configuration->initialization[count++]);
-        fitness(*individual);
-        population_.push_back(individual.get());
+    for (size_t i = 0; i < configuration->population; ++i)
+    {
+        individuals_.push_back(std::make_unique<Individual<T>>(configuration->initialization[i]));
+        fitness(**individuals_.rbegin());
     }
 }
 
@@ -65,53 +62,79 @@ void Population<T>::fitness(Individual<T>& individual) {
     (*constraint_)(&individual.decisions[0], &individual.objectives[0], Individual<T>::constraints == 0 ? nullptr : &individual.voilations[0]);
 }
 
+
 template<typename T>
 Layer<T> Population<T>::sort() {
-    Layer<T> results;
+    Layer<T> results{ {individuals_.begin()->get()} };
+//mutually exclusive dominating and dominated in a layer when comparing all the individuals with a new one
 // improvement of the non dominate sort
 // if an individual is dominated by another which is in the upper layer, 
 // it must be dominated by the other individuals in the upper layer
-    for(auto& individual : individuals_)
+    auto rank = [](Individual<T>* individual, std::list<Individual<T>*>& layer, std::list<Individual<T>*>& lower)
     {
-        if(!results.empty())
+        auto member = layer.begin();
+
+        while (member != layer.end())
         {
-            for(auto& layer = resutlts.begin(); layer != results.end(); ++layer)
+            switch (**member < *individual)
             {
-                switch(layer->begin() < individual)
+            case 1:
+            {
+                return false;
+            }
+            case -1:
+            {
+                lower.push_back(*member);
+                member = layer.erase(member);
+
+                if (member == layer.end())
                 {
-                case 0:
-                {
-                    layer->push_back(individual->get());
-                    break;
-                }
-                case 1:
-                {
-                    if(std::next(layer) == results.end())
-                    {
-                        results.push_back({individual->get()})
-                        break;
-                    }
-                }
-                case -1:
-                {
-                    results.insert({individual->get()});
-                    break;
-                }
+                    return true;
                 }
             }
+            case 0:
+            {
+                member++;
+            }
+            }
         }
-        else
+
+        return true;
+    };
+
+    for (auto individual = std::next(individuals_.begin()); individual != individuals_.end(); ++individual)
+    {
+        for (auto layer = results.begin(); layer != results.end(); ++layer)
         {
-            results.push_back({individual->get()});
+            std::list<Individual<T>*> lower;
+            bool status = rank(individual->get(), *layer, lower);
+
+            if (!status && std::next(layer) != results.end())
+            {
+                results.insert(results.end(), { individual->get() });
+                break;
+            }
+
+            if(status)
+            {
+                layer->push_back(individual->get());
+
+                if (!lower.empty())
+                {
+                    results.insert(std::next(layer), lower);
+                }
+
+                break;
+            }
         }
     }
-
     return results;
 }
 
 template<typename T>
-void Population<T>::Evolve() {
-    population_ = reproducer_->Reproduce(selector_->Select(sort()));
+void Population<T>::Evolve()
+{    
+    reproducer_->Reproduce(selector_->Select(sort()));
 
     for (auto& individual : individuals_)
     {
@@ -124,14 +147,15 @@ Series<T> Population<T>::Elite()
 {
     return *sort().begin();
 }
+
 /*
 template<typename T>
 Layer<T> Population<T>::sort() {
     Layer<T> results;
 
-    for (auto individual = population_.begin(); individual != population_.end(); ++individual)
+    for (auto individual = individuals_.begin(); individual != individuals_.end(); ++individual)
     {
-        for (auto later = std::next(individual); later != population_.end(); ++later)
+        for (auto later = std::next(individual); later != individuals_.end(); ++later)
         {
             switch ((**individual) < (**later))
             {

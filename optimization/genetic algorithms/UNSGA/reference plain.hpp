@@ -3,6 +3,7 @@
 #include "point.hpp"
 #include <map>
 #include <list>
+#include <cmath>
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_REFERENCE_
 #define _MATH_OPTIMIZATION_UNSGA_REFERENCE_
@@ -10,13 +11,9 @@ template<typename T>
 class Reference
 {
 private:
-using Cost = std::pair<std::map<Individual<T>*, Vector<T>*>, std::map<Individual<T>*, Vector<T>*>>;
-
-private:
     size_t dimension_;
 	std::list<std::unique_ptr<Point<T>>> points_;
     Vector<T> ideal_, interception_;
-    std::vector<Vector<T>> costs_;
 
 private:
 //archievement scalar function
@@ -24,8 +21,8 @@ private:
 	void  Ideal(const Series<T>& individuals);
 	void Interception(const Series<T>& individuals);
 
-	Cost Normalize(const Series<T> solution, const Series<T>& critical);
-	void Associate(const Cost& costs);
+	void Normalize(Series<T> individuals);
+	void Associate(Series<T> solution, Series<T>& critical);
 	void Dispense(size_t needed, Series<T>& solution, Series<T>& critical);
 
 public:
@@ -73,7 +70,8 @@ void Plain(size_t dimension, size_t division, std::vector<T*>& points) {
 }
 
 template<typename T>
-T Reference<T>::Scale(size_t dimension, const Vector<T>& objectives) {
+T Reference<T>::Scale(size_t dimension, const Vector<T>& objectives)
+{
     Vector<T> weights(dimension_, 1e-6);
     weights[dimension] = 1;
 
@@ -114,41 +112,37 @@ void Reference<T>::Interception(const Series<T>& individuals) {
 
     std::fill(interception_.begin(), interception_.end(), 1);
     Doolitle<T>(Matrix<T>(matrix), interception_);
+
+    /*
+    for (const auto& interception : interception_)
+    {
+        if (std::isnan(interception))
+        {
+            interception_ = worst;
+            break;
+        }
+    }
+    */
 }
 
 template<typename T>
-Reference<T>::Cost Reference<T>::Normalize(const Series<T> solution, const Series<T>& critical) {
-    Ideal(solution);
-    Interception(solution);
-
-    Cost result({{}, {}});
-
-    size_t count = 0;
-    for(const auto& individual : solution)
+void Reference<T>::Normalize(Series<T> individuals)
+{
+    for(const auto& individual : individuals)
     {
-        auto& cost = costs_[count++];
-        cost = (individual->objectives - ideal_) / interception_;
-        result.first.insert({ individual, &cost });
+        individual->objectives = (individual->objectives - ideal_) / interception_;
     }
-
-    for (const auto& individual : critical)
-    {
-        auto& cost = costs_[count++];
-        cost = (individual->objectives - ideal_) / interception_;
-        result.second.insert({ individual, &cost });
-    }
-
-    return result;
 }
 
 template<typename T>
-void Reference<T>::Associate(const Cost& costs) {
-    for (const auto& [individual, cost] : costs.first)
+void Reference<T>::Associate(Series<T> solution, Series<T>& critical)
+{
+    for (const auto& individual : solution)
     {
         std::map<T, Point<T>*> rank;
 
         for (auto& point : points_) {
-            T distance = point->distance(*cost);
+            T distance = point->distance(individual->objectives);
             rank.insert({ distance, point.get() });
         }
 
@@ -157,19 +151,23 @@ void Reference<T>::Associate(const Cost& costs) {
 
     std::map<Point<T>*, std::map<T, Individual<T>*>> association;
 
-    for (const auto& [individual, cost] : costs.second)
+    for (const auto& individual : critical)
     {
         std::map<T, Point<T>*> rank;
 
         for (auto& point : points_)
         {
-            rank.insert({ point->distance(*cost), point.get()});
+            rank.insert({ point->distance(individual->objectives), point.get()});
         }
 
         auto nearest = rank.begin();
-        association[nearest->second].insert({ nearest->first, individual });
-    }
+        nearest->second->associated.push_back(individual);
 
+//        association[nearest->second].insert({ nearest->first, individual });
+    }
+    critical.clear();
+
+    /*
     for (const auto& [point, associated] : association)
     {
         for (const auto& [distance, individual] : associated)
@@ -177,6 +175,7 @@ void Reference<T>::Associate(const Cost& costs) {
             point->associated.push_back(individual);
         }
     }
+    */
 }
 
 template<typename T>
@@ -193,8 +192,6 @@ void Reference<T>::Dispense(size_t needed, Series<T>& solution, Series<T>& criti
         (*points_.begin())->associated.pop_front();
         (*points_.begin())->count++;
     }
-
-    critical.clear();
 
     for (auto& point : points_)
     {
@@ -213,30 +210,39 @@ std::pair<Series<T>, Series<T>> Reference<T>::Select(Layer<T> layers) {
     }
     selection /= 2;
 
-    auto& elites = result.first;
-
-    //move the better individuals into the solution set
-    while (!layers.empty())
+    if (layers.begin()->size() >= selection)
     {
-        if (elites.size() + layers.begin()->size() > selection)
+        auto first = layers.begin();
+        result.first.splice(result.first.end(), *first, first->begin(), std::next(first->begin(), selection));
+    }
+    else
+    {
+//        auto& elites = result.first;
+
+        //move the better individuals into the solution set
+        while (!layers.empty())
         {
-            break;
+            if (result.first.size() + layers.begin()->size() > selection)
+            {
+                break;
+            }
+
+            result.first.splice(result.first.end(), *layers.begin());
+            layers.pop_front();
         }
 
-        elites.splice(elites.end(), *layers.begin());
-        layers.pop_front();
-    }
+        //Niche technology needed
+        if (selection > result.first.size())
+        {
+            Ideal(result.first);
+            Interception(result.first);
 
-    if (elites.empty()) 
-    {
-        elites.splice(elites.end(), *layers.begin());
-        layers.pop_front();
-    }
+            Normalize(result.first);
+            Normalize(*layers.begin());
 
-    //Niche technology needed
-    if (selection > elites.size()) {
-        Associate(Normalize(elites, *layers.begin()));
-        Dispense(selection - elites.size(), elites, *layers.begin());
+            Associate(result.first, *layers.begin());
+            Dispense(selection - result.first.size(), result.first, *layers.begin());
+        }
     }
 
     //nove the left one to the population for cross and mutation operation
@@ -255,18 +261,19 @@ Reference<T>::Reference(Configuration<T>* configuration) {
 
     ideal_.resize(dimension_, +INFINITY);
     interception_.resize(dimension_, 1);
-    costs_.resize(configuration->population, Vector<T>(dimension_));
+    
+    std::vector<Vector<T>> costs(configuration->population, Vector<T>(dimension_));
 
     std::vector<T*> locations(amount, nullptr);
     for(size_t i = 0; i < amount; ++i){
-        locations[i] = &costs_[i][0];
+        locations[i] = &costs[i][0];
     }
 
     Plain(dimension_, configuration->division, locations);
 
     for (size_t i = 0; i < amount; ++i) {
-        costs_[i] = (T) 1 / configuration->division * costs_[i];
-        points_.push_back(std::make_unique<Point<T>>(costs_[i]));
+        costs[i] = (T) 1 / configuration->division * costs[i];
+        points_.push_back(std::make_unique<Point<T>>(costs[i]));
     }
 }
 #endif //!_MATH_OPTIMIZATION_UNSGA_

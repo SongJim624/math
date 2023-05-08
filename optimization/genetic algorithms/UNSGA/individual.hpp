@@ -13,9 +13,6 @@ public:
 public:
 	Vector<T> decisions, objectives, voilations;
 
-	std::list<Individual<T>*> dominates;
-	size_t dominated;
-
 public:
     Individual(const Vector<T>& decisions);
 };
@@ -45,13 +42,6 @@ int dominate(size_t dimension, T* lhs, T* rhs) {
 	return (counts[1] == dimension) ? 0 : ((counts[0] == 0) ? 1 : ((counts[2] == 0) ? -1 : 0));
 }
 
-//seems not necessary, just use dimension = 1 in the previous case
-//dominate relations of the voilation
-//template<typename T>
-//int dominate(T lhs, T rhs) {
-//	return lhs == 0 ? (rhs == 0 ? 0 : 1) : (rhs == 0 ? -1 : int(compare(lhs, rhs)) - 1);
-//}
-
 //non dominated compare
 template<typename T>
 int operator < (Individual<T>& lhs, Individual<T>& rhs) {
@@ -63,7 +53,8 @@ int operator < (Individual<T>& lhs, Individual<T>& rhs) {
 }
 
 template<typename T>
-Individual<T>::Individual(const Vector<T>& decision) : decisions(decision), dominates({}), dominated(0) {
+Individual<T>::Individual(const Vector<T>& decision) : decisions(decision)
+{
 	objectives.resize(Individual<T>::dimensions, 0);
 	voilations.resize(Individual<T>::constraints, 0);
 }

@@ -119,6 +119,14 @@ Series<T> Reproducor<T>::Reproduce(std::pair<Series<T>, Series<T>> population) {
 
         Cross({ *father, *mother }, { *son, *daughter });
 
+        if (rand() / (T)RAND_MAX > threshold_) {
+            Mutate(*father);
+        }
+
+        if (rand() / (T)RAND_MAX > threshold_) {
+            Mutate(*mother);
+        }
+
         if (rand() /(T)RAND_MAX > threshold_) {
             Mutate(*son);
         }
@@ -127,6 +135,8 @@ Series<T> Reproducor<T>::Reproduce(std::pair<Series<T>, Series<T>> population) {
             Mutate(*daughter);
         }
 
+        check(**father);
+        check(**mother);
         check(**son);
         check(**daughter);
 

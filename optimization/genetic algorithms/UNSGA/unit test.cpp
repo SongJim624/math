@@ -42,8 +42,8 @@ class Configurations : public Optimization::Configuration<double>
 private:
 	const size_t decisions_ = 2;
 	const size_t objectives_ = 2;
-	const double upper_[2] = {-1, -1};
-	const double lower_[2] = {1, 1};
+	const double upper_[2] = {1, 1};
+	const double lower_[2] = {-1, -1};
 	const bool integer_[2] = { false, false };
 
 public:
@@ -87,8 +87,8 @@ int main()
 
 	(*config)["cross"] = 0.8f;
 	(*config)["mutation"] = 0.8f;
-	(*config)["maximum"] = size_t(1000);
-	(*config)["division"] = size_t(30);
+	(*config)["maximum"] = size_t(100);
+	(*config)["division"] = size_t(10);
 	(*config)["population"] = size_t(1000);
 
 	std::unique_ptr<Optimization::Optimizer<double>> optimizer = std::make_unique<UNSGA<double>>();
