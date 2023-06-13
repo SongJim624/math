@@ -1,5 +1,4 @@
 #include "../../optimizer.h"
-//#include "../genetic algorithms.h"
 #include <time.h>
 #include <list>
 #include <map>
@@ -11,31 +10,24 @@
 #ifndef _MATH_OPTIMIZATION_UNSGA_
 #define _MATH_OPTIMIZATION_UNSGA_
 
-#include "configuration.hpp"
-#include "population.hpp"
-#include "reproducer.hpp"
-#include "result.hpp"
-
-template<typename T>
-class UNSGA : public Optimization::Optimizer<T>
+class UNSGA : public Optimization::Optimizer
 {
 private:
-	std::unique_ptr<Configuration<T>> configuration_;
-	std::unique_ptr<Population<T>> population_;
-	std::unique_ptr<Optimization::Result<T>> results_;
+	std::unique_ptr<Configuration> configuration_;
+	std::unique_ptr<Population> population_;
+	std::unique_ptr<Optimization::Result> results_;
 
 public:
 	UNSGA();
-	virtual const Optimization::Result<T>* Optimize(Optimization::Configuration<T>* configuration);
+	virtual const Optimization::Result* Optimize(Optimization::Configuration* configuration);
 };
 
-template<typename T>
-UNSGA<T>::UNSGA() : configuration_(nullptr), population_(nullptr), results_(nullptr)
+UNSGA::UNSGA() : configuration_(nullptr), population_(nullptr), results_(nullptr)
 {
 }
 
 template<typename T>
-const Optimization::Result<T>* UNSGA<T>::Optimize(Optimization::Configuration<T>* configuration)
+const Optimization::Result* UNSGA::Optimize(Optimization::Configuration* configuration)
 {
 	configuration_.reset(nullptr);
 	population_.reset(nullptr);
@@ -43,18 +35,18 @@ const Optimization::Result<T>* UNSGA<T>::Optimize(Optimization::Configuration<T>
 
 	srand(0);
 
-	Individual<T>::dimensions = configuration->dimensions();
-	Individual<T>::scales = configuration->scales();
-	Individual<T>::constraints = configuration->constraints();
+	Individual::dimensions = configuration->dimensions();
+	Individual::scales = configuration->scales();
+	Individual::constraints = configuration->constraints();
 
-	configuration_ = std::make_unique<Configuration<T>>(configuration);
-	population_ = std::make_unique<Population<T>>(configuration_.get());
+	configuration_ = std::make_unique<Configuration>(configuration);
+	population_ = std::make_unique<Population>(configuration_.get());
 
 	for (size_t i = 0; i < configuration_->maximum; ++i) {
 		population_->Evolve();
 	}
 
-	results_ = std::make_unique<Result<T>>(population_->Elite());
+	results_ = std::make_unique<Result>(population_->Elite());
 	return results_.get();
 }
 #endif //!_MATH_OPTIMIZATION_UNSGA_

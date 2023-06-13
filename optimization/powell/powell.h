@@ -7,16 +7,16 @@ class Powell : public Optimizor
 {
 private:
 //this is used for the traditional Powell
-    float * decision, * initial;
-    std::list<float *> directions;
+    double * decision_, * initial_;
+    std::list<double *> directions;
 
     float * values;
 
 private:
-    float Search(Function* function, float * initial, float * direction);
+    double Search(Function* function, double * initial, double * direction);
 
 public:
-    Powell(Function* function, size_t decisions, float * initial);
+    Powell(Function* function, size_t decisions, double * initial);
     ~Powell();
 
 public:

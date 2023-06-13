@@ -16,7 +16,7 @@ Powell::Powell(Function* function, const long& decisions, float * initial) :
 * return the optimal step of the search direction
 * NOTICE: this method is only suitable for single peak functions
 */
-float Powell::Search(Function* function, float* X0, float* direction)
+double Powell::Search(Function* function, double* X0, double* direction)
 {
 	//to settle the intial search interval
 	float left = 0, step = 1, right = 1, l = 0, r = 0;
@@ -87,7 +87,7 @@ float Powell::Search(Function* function, float* X0, float* direction)
 //traditional powell
 void Powell::Optimize(const char* results)
 {
-	long count = 0; 
+	long count = 0;
 	while()
 	{
 		for(auto& iter : directions)

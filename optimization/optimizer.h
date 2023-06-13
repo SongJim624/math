@@ -5,74 +5,80 @@
 #include <memory>
 #include <cassert>
 
-#ifndef _SJML_Optimization_Optimizor_
-#define _SJML_Optimization_Optimizor_
-namespace Optimization
+#ifndef _MATH_OPTIMIZATION_OPTIMIZOR_
+#define _MATH_OPTIMIZATION_OPTIMIZOR_
+class Objective
 {
-	template<typename T>
-	class Objective
-	{
-	public:
-		virtual void operator() (const T* decisions, T* objectives) = 0;
-		virtual ~Objective() {}
-	};
+public:
+	virtual void operator() (const double* decisions, double* objectives) = 0;
+	virtual ~Objective() {}
+};
 
-	template<typename T>
-	class Constraint
-	{
-	public:
-		virtual void operator() (const T* decisions, const T* objectives, T* voilations = nullptr) = 0;
-		virtual ~Constraint() {}
-	};
+class Constraint
+{
+public:
+	virtual void operator() (const double* decisions, const double* objectives, double* voilations = nullptr) = 0;
+	virtual ~Constraint() {}
+};
 
-	template<typename T>
-	class Result
-	{
-	public:
-		virtual std::vector<std::vector<T>> decisions() const = 0;
-		virtual std::vector<std::vector<T>> objectives() const = 0;
-		virtual void Write(const char*) const = 0;
-		virtual ~Result() {}
-	};
+class Result
+{
+public:
+	virtual std::vector<std::vector<double>> decisions() const = 0;
+	virtual std::vector<std::vector<double>> objectives() const = 0;
+	virtual void Write(const char*) const = 0;
+	virtual ~Result() {}
+};
 
-	template<typename T>
-	class Configuration
-	{
-	private:
-		std::map<std::string, std::variant<size_t, T, std::vector<T>>> dictionary_;
+class Configuration
+{
+private:
+	std::map<std::string, std::variant<size_t, double, std::vector<double>>> dictionary_;
 
-	public:
-		std::variant<size_t, T, std::vector<T>> operator [] (const std::string& name) const {
-			auto iter = dictionary_.find(name);
-			assert((void("item " + name + " not found!"), iter != dictionary_.end()));
-			return iter->second;
-		}
+public:
+	std::variant<size_t, double, std::vector<double>> operator [] (const std::string& name) const {
+		auto iter = dictionary_.find(name);
+		assert((void("item " + name + " not found!"), iter != dictionary_.end()));
+		return iter->second;
+	}
 
-		std::variant<size_t, T, std::vector<T>>& operator [] (const std::string& name) {
-			return dictionary_[name];
-		}
+	std::variant<size_t, double, std::vector<double>>& operator [] (const std::string& name) {
+		return dictionary_[name];
+	}
 
-	public:
-		virtual size_t dimensions() const = 0;
-		virtual size_t scales() const = 0;
-		virtual size_t constraints() const = 0;
+public:
+	virtual size_t dimensions() const = 0;
+	virtual size_t scales() const = 0;
+	virtual size_t constraints() const = 0;
 
-		virtual const T* uppers() const = 0;
-		virtual const T* lowers() const = 0;
-		virtual const bool* integers() const = 0;
-		virtual ~Configuration(){}
-	public:
+	virtual const double* uppers() const = 0;
+	virtual const double* lowers() const = 0;
+	virtual const bool* integers() const = 0;
+	virtual ~Configuration(){}
+public:
 
-		std::unique_ptr<Objective<T>> objective;
-		std::unique_ptr<Constraint<T>> constraint;
-	};
+	std::unique_ptr<Objective> objective;
+	std::unique_ptr<Constraint> constraint;
+};
 
-	template<typename T>
-	class Optimizer
-	{
-	public:
-		virtual const Result<T>* Optimize(Configuration<T>*) = 0;
-		virtual ~Optimizer() {};
-	};
-}
-#endif // !_SJML_Optimization_Optimizor_
+class Optimizor
+{
+public:
+	class Configuration;
+	class Result;
+
+public:
+	virtual const Result* Optimize(Configuration*) = 0;
+	virtual ~Optimizor() {};
+};
+
+class Optimizor::Configuration
+{
+
+};
+
+class Optimizor::Result
+{
+
+};
+#endif //!_MATH_OPTIMIZATION_OPTIMIZOR_

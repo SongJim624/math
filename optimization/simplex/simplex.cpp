@@ -1,12 +1,12 @@
 #include <mkl.h>
 #include <vector>
 
-typedef vector std::vector<float>;
+//typedef vector std::vector<double>;
 
 //this is the max form
 //the length of the coeffficients is the decisions plus the slacks
 //so does the matrix
-vector Simplex(const vector& coefficients, const vector& matrix, const vector& value)
+double * Simplex(size_t length, const double * coefficients, const double * matrix, const double * value)
 {
     size_t column = coefficients.size() + value.size() + 2;
     vector table(column * value.size(), 0);

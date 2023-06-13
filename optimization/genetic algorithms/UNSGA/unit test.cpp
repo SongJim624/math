@@ -2,7 +2,7 @@
 #include <fstream>
 #include "unsga.h"
 
-class Objective : public Optimization::Objective<double>
+class Objective : public Optimization::Objective
 {
 private:
 	size_t decisions_ = 2;
@@ -31,13 +31,13 @@ public:
 	}
 };
 
-class Constraint : public Optimization::Constraint<double>
+class Constraint : public Optimization::Constraint
 {
 public:
 	virtual void operator() (const double* decisions, const double* objectives, double* voilations = nullptr) {}
 };
 
-class Configurations : public Optimization::Configuration<double>
+class Configurations : public Optimization::Configuration
 {
 private:
 	const size_t decisions_ = 2;
@@ -81,7 +81,7 @@ public:
 
 int main()
 {
-	std::unique_ptr<Optimization::Configuration<double>> config = std::make_unique<Configurations>();
+	std::unique_ptr<Optimization::Configuration> config = std::make_unique<Configurations>();
 	config->objective = std::make_unique<Objective>();
 	config->constraint = std::make_unique<Constraint>();
 
@@ -91,7 +91,7 @@ int main()
 	(*config)["division"] = size_t(10);
 	(*config)["population"] = size_t(1000);
 
-	std::unique_ptr<Optimization::Optimizer<double>> optimizer = std::make_unique<UNSGA<double>>();
+	std::unique_ptr<Optimization::Optimizer> optimizer = std::make_unique<UNSGA>();
 	auto results = optimizer->Optimize(config.get());
 	results->Write("results.txt");
 	results = nullptr;

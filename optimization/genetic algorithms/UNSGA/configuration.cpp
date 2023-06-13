@@ -11,7 +11,6 @@
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_CONFIGURATION_
 #define _MATH_OPTIMIZATION_UNSGA_CONFIGURATION_
-template<typename T>
 struct Configuration
 {
 public:
