@@ -2,13 +2,13 @@
 #include <fstream>
 #include "unsga.h"
 
-class Objective : public Optimization::Objective
+class Objective : public Optimizor::Objective
 {
 private:
 	size_t decisions_ = 2;
 
 public:
-	virtual void operator() (const double* decisions, double* objectives)
+	virtual const double* operator() (const double* decisions, double* objectives)
 	{
 		objectives[0] = 0;
 
@@ -31,13 +31,13 @@ public:
 	}
 };
 
-class Constraint : public Optimization::Constraint
+class Constraint : public Optimizor::Constraint
 {
 public:
-	virtual void operator() (const double* decisions, const double* objectives, double* voilations = nullptr) {}
+	virtual const double* operator() (const double* decisions, const double* objectives, double* voilations = nullptr) {}
 };
 
-class Configurations : public Optimization::Configuration
+class Configurations : public Optimizor::Configuration
 {
 private:
 	const size_t decisions_ = 2;

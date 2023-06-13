@@ -7,21 +7,34 @@
 
 #ifndef _MATH_OPTIMIZATION_OPTIMIZOR_
 #define _MATH_OPTIMIZATION_OPTIMIZOR_
-class Objective
+class Optimizor
 {
 public:
-	virtual void operator() (const double* decisions, double* objectives) = 0;
+	class Objective;
+	class Constraint;
+	class Configuration;
+	class Result;
+
+public:
+	virtual const Result* Optimize(const Configuration *) = 0;
+	virtual ~Optimizor(){};
+};
+
+class Optimizor::Objective
+{
+public:
+	virtual const double* operator() (const double* decisions, double* objectives) = 0;
 	virtual ~Objective() {}
 };
 
-class Constraint
+class Optimizor::Constraint
 {
 public:
-	virtual void operator() (const double* decisions, const double* objectives, double* voilations = nullptr) = 0;
+	virtual const double* operator() (const double* decisions, const double* objectives, double* voilations = nullptr) = 0;
 	virtual ~Constraint() {}
 };
 
-class Result
+class Optimizor::Result
 {
 public:
 	virtual std::vector<std::vector<double>> decisions() const = 0;
@@ -30,19 +43,22 @@ public:
 	virtual ~Result() {}
 };
 
-class Configuration
+class Optimizor::Configuration
 {
+public:
+	using T = std::variant<size_t, double, std::vector<double>>;
+
 private:
-	std::map<std::string, std::variant<size_t, double, std::vector<double>>> dictionary_;
+	std::map<std::string, T> dictionary_;
 
 public:
-	std::variant<size_t, double, std::vector<double>> operator [] (const std::string& name) const {
+	T operator [] (const std::string& name) const {
 		auto iter = dictionary_.find(name);
 		assert((void("item " + name + " not found!"), iter != dictionary_.end()));
 		return iter->second;
 	}
 
-	std::variant<size_t, double, std::vector<double>>& operator [] (const std::string& name) {
+	T& operator [] (const std::string& name) {
 		return dictionary_[name];
 	}
 
@@ -59,26 +75,5 @@ public:
 
 	std::unique_ptr<Objective> objective;
 	std::unique_ptr<Constraint> constraint;
-};
-
-class Optimizor
-{
-public:
-	class Configuration;
-	class Result;
-
-public:
-	virtual const Result* Optimize(Configuration*) = 0;
-	virtual ~Optimizor() {};
-};
-
-class Optimizor::Configuration
-{
-
-};
-
-class Optimizor::Result
-{
-
 };
 #endif //!_MATH_OPTIMIZATION_OPTIMIZOR_

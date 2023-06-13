@@ -1,4 +1,4 @@
-#include "../../optimizer.h"
+#include "../../optimizor.h"
 #include <time.h>
 #include <list>
 #include <map>
@@ -9,44 +9,65 @@
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_
 #define _MATH_OPTIMIZATION_UNSGA_
-
-class UNSGA : public Optimization::Optimizer
+struct Configuration
 {
+public:
+	size_t dimensions, scales, constraints;
+	const double* uppers, * lowers;
+	const bool* integers;
+	Optimizor::Objective* objective;
+	Optimizor::Constraint* constraint;
+
+public:
+	size_t maximum, division, population;
+//	std::vector<Vector<T>> initialization;
+	double cross, mutation, threshold;
+
+public:
+	Configuration(Optimizor::Configuration* configuration);
+	~Configuration();
+};
+
+class Individual
+{
+public:
+	static size_t dimensions, scales, constraints;
+
+public:
+	Vector<T> decisions, objectives, voilations;
+
+public:
+    Individual(const Vector<T>& decisions);
+};
+int operator < (Individual& lhs, Individual& rhs);
+
+class Result : public Optimizor::Result
+{
+private:
+	Series<T> elites_;
+
+public:
+	virtual void Write(const char* filename) const;
+	virtual std::vector<std::vector<T>> objectives() const;
+	virtual std::vector<std::vector<T>> decisions() const;
+
+public:
+	Result(const Series<T>& elites);
+};
+
+
+class UNSGA : public Optimizor
+{
+private:
+	class Population;
+
 private:
 	std::unique_ptr<Configuration> configuration_;
 	std::unique_ptr<Population> population_;
-	std::unique_ptr<Optimization::Result> results_;
+	std::unique_ptr<Optimizor::Result> results_;
 
 public:
 	UNSGA();
-	virtual const Optimization::Result* Optimize(Optimization::Configuration* configuration);
+	virtual const Optimizor::Result* Optimize(Optimizor::Configuration* configuration);
 };
-
-UNSGA::UNSGA() : configuration_(nullptr), population_(nullptr), results_(nullptr)
-{
-}
-
-template<typename T>
-const Optimization::Result* UNSGA::Optimize(Optimization::Configuration* configuration)
-{
-	configuration_.reset(nullptr);
-	population_.reset(nullptr);
-	results_.reset(nullptr);
-
-	srand(0);
-
-	Individual::dimensions = configuration->dimensions();
-	Individual::scales = configuration->scales();
-	Individual::constraints = configuration->constraints();
-
-	configuration_ = std::make_unique<Configuration>(configuration);
-	population_ = std::make_unique<Population>(configuration_.get());
-
-	for (size_t i = 0; i < configuration_->maximum; ++i) {
-		population_->Evolve();
-	}
-
-	results_ = std::make_unique<Result>(population_->Elite());
-	return results_.get();
-}
 #endif //!_MATH_OPTIMIZATION_UNSGA_
