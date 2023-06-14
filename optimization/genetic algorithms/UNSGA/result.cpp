@@ -1,19 +1,29 @@
-#include "unsga.h"
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include "population.hpp"
 
-Result::Result(const Series<T>& elites) : elites_(elites)
+#include "../../optimizor.h"
+
+template<typename T>
+Result<T>::Result(const Series<T>& elites) : elites_(elites)
 {}
 
-std::vector<std::vector<double>> Result::decisions() const 
+template<typename T>
+std::vector<std::vector<T>> Result<T>::decisions() const 
 {
 	return {};
 }
 
-std::vector<std::vector<double>> Result::objectives() const
+template<typename T>
+std::vector<std::vector<T>> Result<T>::objectives() const
 {
 	return {};
 }
 
-void Result::Write(const char* filename) const
+template<typename T>
+void Result<T>::Write(const char* filename) const
 {
 	std::ofstream file(filename);
 
@@ -28,3 +38,4 @@ void Result::Write(const char* filename) const
 
 	file.close();
 }
+#endif //! _MATH_OPTIMIZTION_UNSGA_RESULTS_

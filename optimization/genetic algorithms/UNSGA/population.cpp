@@ -1,72 +1,76 @@
-#include "unsga.h"
-//=====================================================================
-Individual::Individual(const std::vector<double>& decision) : decisions(decision)
-{
-	objectives.resize(Individual::dimensions, 0);
-	voilations.resize(Individual::constraints, 0);
-}
+#include "individual.hpp"
+#include "reproducer.hpp"
+#include "reference plain.hpp"
+#include "configuration.hpp"
 
-Population::Population(Configuration* configuration)
+#ifndef _MATH_OPTIMIZATION_UNSGA_POPULATION_
+#define _MATH_OPTIMIZATION_UNSGA_POPULATION_
+template<typename T>
+class Result;
+
+template<typename T>
+class Population
+{
+private:
+    friend class Result<T>;
+
+private:
+    Optimization::Objective<T> * objective_;
+    Optimization::Constraint<T> * constraint_;
+
+    std::unique_ptr<Reference<T>> selector_;
+    std::unique_ptr<Reproducor<T>> reproducer_;
+
+	std::list<std::unique_ptr<Individual<T>>> individuals_;
+
+private:
+	Layer<T> sort();
+    void fitness(Individual<T>& individual);
+
+public:
+    void Evolve();
+    Series<T> Elite();
+
+	Population(Configuration<T>* configuration);
+    ~Population();
+};
+
+template<typename T>
+Population<T>::Population(Configuration<T>* configuration)
 {
     objective_ = configuration->objective;
     constraint_ = configuration->constraint;
-    selector_ = std::make_unique<Reference>(configuration);
-    reproducer_ = std::make_unique<Reproducor>(configuration);
+    selector_ = std::make_unique<Reference<T>>(configuration);
+    reproducer_ = std::make_unique<Reproducor<T>>(configuration);
 
     for (size_t i = 0; i < configuration->population; ++i)
     {
-        individuals_.push_back(std::make_unique<Individual>(configuration->initialization[i]));
+        individuals_.push_back(std::make_unique<Individual<T>>(configuration->initialization[i]));
         fitness(**individuals_.rbegin());
     }
 }
 
-Population::~Population()
-{
+template<typename T>
+Population<T>::~Population() {
     objective_ = nullptr;
     constraint_ = nullptr;
 }
 
-//=====================================================================
-
-int dominate(size_t dimension, double* lhs, double* rhs)
-{
-	std::array<size_t, 3> counts{ 0, 0, 0 };
-
-	auto compare = [](double lhs, double rhs, double tol = 1e-6) {
-		return std::abs(lhs - rhs) < tol ? 1 : (lhs > rhs ? 0 : 2);
-	};
-
-	for (size_t i = 0; i < dimension; ++i) {
-		counts[compare(lhs[i], rhs[i])]++;
-	}
-
-	return (counts[1] == dimension) ? 0 : ((counts[0] == 0) ? 1 : ((counts[2] == 0) ? -1 : 0));
-}
-
-//non dominated compare
-int operator < (Individual& lhs, Individual& rhs)
-{
-	//need to further consider the multi non-linear constraints
-	int status = Individual::constraints == 0 ? 0 : dominate(1, &lhs.voilations[0], &rhs.voilations[0]);
-
-    return status != 0 ? status :
-        dominate(Individual::dimensions, &lhs.objectives[0], &rhs.objectives[0]);
-}
-
-void Population::fitness(Individual& individual)
-{
+template<typename T>
+void Population<T>::fitness(Individual<T>& individual) {
     (*objective_)(&individual.decisions[0], &individual.objectives[0]);
-    (*constraint_)(&individual.decisions[0], &individual.objectives[0], Individual::constraints == 0 ? nullptr : &individual.voilations[0]);
+    (*constraint_)(&individual.decisions[0], &individual.objectives[0], Individual<T>::constraints == 0 ? nullptr : &individual.voilations[0]);
 }
 
-Population::Layer Population::sort()
-{
-    Layer results{ {individuals_.begin()->get()} };
+
+template<typename T>
+Layer<T> Population<T>::sort() {
+    Layer<T> results{ {individuals_.begin()->get()} };
 //mutually exclusive dominating and dominated in a layer when comparing all the individuals with a new one
 // improvement of the non dominate sort
 // if an individual is dominated by another which is in the upper layer, 
 // it must be dominated by the other individuals in the upper layer
-    auto rank = [](Individual* individual, std::list<Individual*>& layer, std::list<Individual*>& lower)
+    auto rank = [](Individual<T>* individual, std::list<Individual<T>*>& layer, std::list<Individual<T>*>& lower)
     {
         auto member = layer.begin();
 
@@ -102,7 +106,7 @@ Population::Layer Population::sort()
     {
         for (auto layer = results.begin(); layer != results.end(); ++layer)
         {
-            std::list<Individual*> lower;
+            std::list<Individual<T>*> lower;
             bool status = rank(individual->get(), *layer, lower);
 
             if (!status && std::next(layer) != results.end())
@@ -127,7 +131,8 @@ Population::Layer Population::sort()
     return results;
 }
 
-void Population::Evolve()
+template<typename T>
+void Population<T>::Evolve()
 {    
     reproducer_->Reproduce(selector_->Select(sort()));
 
@@ -137,7 +142,8 @@ void Population::Evolve()
     }
 }
 
-std::list<Individual*> Population::Elite()
+template<typename T>
+Series<T> Population<T>::Elite()
 {
     return *sort().begin();
 }
@@ -200,3 +206,4 @@ Layer<T> Population<T>::sort() {
     return results;
 }
 */
+#endif //!_MATH_OPTIMIZATION_UNSGA_POPULATION_

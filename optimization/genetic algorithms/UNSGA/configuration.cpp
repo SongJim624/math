@@ -1,4 +1,12 @@
 #include "unsga.h"
+#include <time.h>
+#include <list>
+#include <map>
+#include <algorithm>
+#include <memory>
+#include <array>
+#include <cassert>
+#include "D:\\Windows\\Documents\\GitHub\\mathematical-tools\\basic\\eigen like\\math.hpp"
 
 Configuration::Configuration(Optimizor::Configuration* configuration)
 {
@@ -6,27 +14,30 @@ Configuration::Configuration(Optimizor::Configuration* configuration)
 	scales = configuration->scales();
 	constraints = configuration->constraints();
 
-	uppers = std::vector<double>(configuration->uppers(), configuration->uppers() + scales);
-	lowers = std::vector<double>(configuration->lowers(), configuration->lowers() + scales);
-	integers = std::vector<double>(configuration->integers(), configuration->integers() + scales);
+	uppers = configuration->uppers();
+	lowers = configuration->lowers();
+	integers = configuration->integers();
 
 	objective = configuration->objective.get();
 	constraint = configuration->constraint.get();
 
-	maximum = std::get<size_t>((*configuration)["maximum"]);
-	division = std::get<size_t>((*configuration)["division"]);
-	population = std::get<size_t>((*configuration)["population"]);
+	const auto& config = *configuration;
+
+	maximum = std::get<size_t>(config["maximum"]);
+	division = std::get<size_t>(config["division"]);
+	population = std::get<size_t>(config["population"]);
 
 	initialization.resize(population);
 	for (size_t i = 0; i < population; ++i)
 	{
-		for(size_t j = 0; j< dimesion; ++j)
-		{
-			initialization[i] = uniform_(generator_) * (uppers[i] - lowers[i]) + lowers[i];
-		}
+		initialization[i] = random<T>(scales, Vector<T>(scales, uppers), Vector<T>(scales, lowers));
 	}
 
-	cross = std::get<double>((*configuration)["cross"]);
-	mutation = std::get<double>((*configuration)["mutation"]);
+	cross = std::get<T>(config["cross"]);
+	mutation = std::get<T>(config["mutation"]);
 	threshold = 0.8;
+}
+
+Configuration::~Configuration()
+{
 }
