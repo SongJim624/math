@@ -4,22 +4,18 @@ UNSGA::UNSGA() : configuration_(nullptr), population_(nullptr), results_(nullptr
 {
 }
 
-const Optimizor::Result* UNSGA::Optimize(Optimizor::Configuration* configuration)
+const Optimizor::Result* UNSGA::Optimize(Optimizor::Configuration* config)
 {
-	configuration_.reset(nullptr);
 	population_.reset(nullptr);
-	results_.reset(nullptr);
+	Individual::dimensions = config->dimensions();
+	Individual::scales = config->scales();
+	Individual::constraints = config->constraints();
 
-	srand(0);
+	std::unique_ptr<::Configuration> configuration = std::make_unique<::Configuration>(config);
+	population_ = std::make_unique<Population>(configuration.get());
 
-	Individual::dimensions = configuration->dimensions();
-	Individual::scales = configuration->scales();
-	Individual::constraints = configuration->constraints();
-
-	configuration_ = std::make_unique<Configuration>(configuration);
-	population_ = std::make_unique<Population>(configuration_.get());
-
-	for (size_t i = 0; i < configuration_->maximum; ++i) {
+	for (size_t i = 0; i < configuration->maximum; ++i)
+    {
 		population_->Evolve();
 	}
 

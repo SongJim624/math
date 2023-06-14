@@ -1,34 +1,15 @@
-#include "configuration.hpp"
-#include "individual.hpp"
+#include "unsga.h"
 
-#ifndef _MATH_OPTIMIZATION_UNSGA_POINT_
-#define _MATH_OPTIMIZATION_UNSGA_POINT_
-template<typename T>
-class Point
-{
-private:
-    Vector<T> location_;
-
-public:
-	size_t count;
-	Series<T> associated;
-
-public:
-	//perpendicular distance for a point to the reference line
-	T distance(const Vector<T>& point) const;
-
-    Point(const Vector<T>& location);
-};
-
-template<typename T>
-Point<T>::Point(const Vector<T>& location) : location_(location) , count(0)
+Point::Point(const std::vector<double>& location)
+    : location_(location) , count(0), associated({})
 {
 }
 
-template<typename T>
-T Point<T>::distance(const Vector<T>& point) const {
-    auto temporary = location_;
-    temporary = (-dot(location_, point) / dot(location_, location_)) * location_ + temporary;
-    return sqrt(dot(temporary, temporary));
+double Point::distance(const std::vector<double>& point) const
+{
+//    auto temporary = location_;
+//    std::inner_product(location_.begin(), location_.end(), point.begin(), 0)
+//    temporary = (-dot(location_, point) / dot(location_, location_)) * location_ + temporary;
+//    return sqrt(dot(temporary, temporary));
+    return 0;
 }
-#endif //!_MATH_OPTIMIZATION_UNSGA_POINT_

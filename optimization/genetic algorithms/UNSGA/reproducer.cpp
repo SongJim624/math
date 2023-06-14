@@ -1,67 +1,41 @@
-#include <time.h>
-#include <array>
-#include "D:\\Windows\\Documents\\GitHub\\mathematical-tools\\basic\\eigen like\\vector.hpp"
-#include "individual.hpp"
-#include "configuration.hpp"
-
-#ifndef _MATH_OPTIMIZATION_UNSGA_REPRODUCER_
-#define _MATH_OPTIMIZATION_UNSGA_REPRODUCER_
-template<typename T>
-class Reproducor
+#include "unsga.h"
+void Reproducor::check(Individual& individual)
 {
-private:
-    size_t scale_;
-    const T* uppers_, * lowers_;
-    T cross_, mutation_, threshold_;
-    const bool* integers_;
-
-private:
-    void Cross(std::array<const Individual<T>*, 2> parents, std::array<Individual<T>*, 2> children);
-    void Mutate(Individual<T>* individual);
-    void check(Individual<T>& individual);
-
-public:
-    Reproducor(Configuration<T>* configuration);
-	//worse individuals in the children set would be replaced by children
-   Series<T> Reproduce(std::pair<Series<T>, Series<T>> population);
-};
-
-template<typename T>
-void Reproducor<T>::check(Individual<T>& individual)
-{
-	for (size_t i = 0; i < scale_; ++i) {
+	for (size_t i = 0; i < scale_; ++i)
+    {
 		individual.decisions[i] = std::max(std::min(individual.decisions[i], uppers_[i]), lowers_[i]);
 
-		if (integers_[i]) {
+		if (integers_[i])
+        {
 			individual.decisions[i] = round(individual.decisions[i]);
 		}
 	}
 }
 
-template<typename T>
-Reproducor<T>::Reproducor(Configuration<T>* configuration) {
+Reproducor::Reproducor(Configuration* configuration)
+{
     scale_ = configuration->scales;
-    
+
     uppers_ = configuration->uppers;
     lowers_ = configuration->lowers;
     integers_ = configuration->integers;
-   
+
     cross_ = configuration->cross;
     mutation_ = configuration->mutation;
     threshold_ = 0.8;
 }
 
-template<typename T>
-void Reproducor<T>::Cross(std::array<const Individual<T>*, 2> parents, std::array<Individual<T>*, 2> children) {
-    Vector<T> randoms = random<T>(scale_);
-
+void Reproducor::Cross(std::array<const Individual*, 2> parents, std::array<Individual*, 2> children)
+{
+    std::vector<double> randoms(scale_);
     for (size_t i = 0; i < scale_; ++i)
     {
+        randoms[i] = uniform_(generator_);
         randoms[i] = (randoms[i] < 0.5) ? 2.0 * randoms[i] : 0.5 / (1.0 - randoms[i]);
     }
 
     randoms = randoms ^ (1 / (cross_ + 1));
-    
+
     auto& father = parents[0]->decisions;
     auto& mother = parents[1]->decisions;
 
@@ -72,28 +46,26 @@ void Reproducor<T>::Cross(std::array<const Individual<T>*, 2> parents, std::arra
     daughter = 0.5 * (father + mother + randoms * (father - mother));
 }
 
-template<typename T>
-void Reproducor<T>::Mutate(Individual<T>* individual) {
-    Vector<T> randoms = random<T>(scale_);
+void Reproducor::Mutate(Individual* individual)
+{
+    auto update = [this](double random, double lower, double upper, double& decision)
+    {
+        double weight = (upper - decision) / (upper - lower);
 
-    for (size_t i = 0; i < scale_; ++i) {
-        auto r = randoms[i];
-        auto& v = individual->decisions[i];
+        decision = (random < 0.5) ?
+            pow(2 * random + (1 - 2 * random) * pow(weight, mutation_ + 1), 1 / (1 + mutation_)) - 1:
+            1 - pow(2 * (1 - random) + (2 * random - 1) * pow(weight, mutation_ + 1), 1 / (1 + mutation_));
+    };
 
-        if (randoms[i] < 0.5) {
-            auto weight = (v - lowers_[i]) / (uppers_[i] - lowers_[i]);
-            v = pow(2 * r + (1 - 2 * r) * pow(1 - weight, mutation_ + 1), 1 / (1 + mutation_)) - 1;
-        }
-        else {
-            auto weight = (uppers_[i] - v) / (uppers_[i] - lowers_[i]);
-            v = 1 - pow(2 * (1 - r) + (2 * r - 1) * pow(1 - weight, mutation_ + 1), 1 / (1 + mutation_));
-        }
+    for (size_t i = 0; i < scale_; ++i)
+    {
+        update(uniform_(generator_), lowers_[i], uppers_[i], individual->decisions[i]);
     }
 }
 
-template<typename T>
-Series<T> Reproducor<T>::Reproduce(std::pair<Series<T>, Series<T>> population) {
-    Series<T> result, temporary;
+std::list<Individual*> Reproducor::Reproduce(std::pair<std::list<Individual*>, std::list<Individual*>> population)
+{
+    std::list<Individual*> result, temporary;
 
     auto& elites = population.first;
     auto& ordinary = population.second;
@@ -119,24 +91,16 @@ Series<T> Reproducor<T>::Reproduce(std::pair<Series<T>, Series<T>> population) {
 
         Cross({ *father, *mother }, { *son, *daughter });
 
-        if (rand() / (T)RAND_MAX > threshold_) {
-            Mutate(*father);
-        }
-
-        if (rand() / (T)RAND_MAX > threshold_) {
-            Mutate(*mother);
-        }
-
-        if (rand() /(T)RAND_MAX > threshold_) {
+        if (uniform_(generator_) > threshold_)
+        {
             Mutate(*son);
         }
 
-        if (rand() / (T)RAND_MAX > threshold_) {
+        if (uniform_(generator_) > threshold_)
+        {
             Mutate(*daughter);
         }
 
-        check(**father);
-        check(**mother);
         check(**son);
         check(**daughter);
 
@@ -159,5 +123,3 @@ Series<T> Reproducor<T>::Reproduce(std::pair<Series<T>, Series<T>> population) {
     result.splice(result.end(), ordinary);
     return result;
 }
-
-#endif //!_MATH_OPTIMIZATION_UNSGA_REPRODUCER_
