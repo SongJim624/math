@@ -11,7 +11,7 @@
 #include <sstream>
 #include <iostream>
 
-#include "../../../basic/plain/plain.hpp"
+#include "../../../basic/plain math/plain.h"
 #include "../../optimizor.h"
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_
@@ -27,7 +27,17 @@ private:
 	std::unique_ptr<Population> population_;
 
 public:
-	virtual const Optimizor<T, allocator>::Results* Optimize(Optimizor<T, allocator>::Configuration* configuration);
+	virtual const Optimizor<T, allocator>::Result* Optimize(Optimizor<T, allocator>::Configuration* configuration)
+	{
+		population_ = std::make_unique<Population>(configuration);
+
+		for (size_t i = 0; i < std::get<size_t>(*configuration)["maximum"]; ++i)
+		{
+			population_->Evolve();
+		}
+
+		return reinterpret_cast<Optimizor<T, allocator>::Result*>(population_.get());
+	}
 };
 
 template<typename T, class allocator>
@@ -41,16 +51,14 @@ private:
 	using Layer = std::list<std::list<Individual*>>;
 
 private:
-    std::shared_ptr<Optimizor<T, allcoator>::Configuration> configuration_;
+    Optimizor<T, allocator>::Configuration* configuration_;
 
 	std::list<std::unique_ptr<Individual>> individuals_;
     std::unique_ptr<Reference> selector_;
     std::unique_ptr<Reproducor> reproducer_;
 
-
 private:
 	std::list<std::list<Individual*>> sort();
-    void fitness(Individual* individual);
 
 private:
 	virtual void Write(const char *) const;
@@ -61,7 +69,6 @@ public:
     void Evolve();
 
 	Population(Optimizor<T, allocator>::Configuration* configuration);
-    ~Population();
 };
 
 template<typename T, class allocator>
@@ -84,7 +91,7 @@ private:
 	void normalize(Series& elites, Series& cirticals);
 
 public:
-    Reference(Optimize<T, allocator>::Configuration* configuration);
+    Reference(Optimizor<T, allocator>::Configuration* configuration);
     Series select(Layer layers);
 };
 
@@ -123,17 +130,4 @@ public:
 	Reproducor(Optimizor<T, allocator>::Configuration* configuration);
 	Series reproduce(std::pair<Series, Series> population);
 };
-
-template<typename T, class allocator>
-const Optimizor<T, allocator>::Results* UNSGA<T, allocator>::Optimize(Optimizor<T, allocator>::Configuration* configuration)
-{
-	population_ = std::make_unique<Population>(configuration);
-
-	for (size_t i = 0; i < std::get<size_t>(*configuration)["maximum"]; ++i)
-	{
-		population_->Evolve();
-	}
-
-	return reinterpret_cast<Optimizor<T, allocator>::Result*>(population_.get());
-}
 #endif //!_MATH_OPTIMIZATION_UNSGA_

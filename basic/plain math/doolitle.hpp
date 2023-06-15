@@ -3,9 +3,9 @@
 #ifndef _MATH_BASIC_EIGENLIKE_DOOLITLE_
 #define _MATH_BASIC_EIGENLIKE_DOOLITLE_
 template<typename T, class allocator>
-void Doolitle(const std::vector<T, allocator>& matrix, std::vector<T, allcoator>& vector)
+void Doolitle(const std::vector<T, allocator>& matrix, std::vector<T, allocator>& vector)
 {
-    std::assert(void("size problem!"), std::pow(vector.size(), 2) == matrix.size());
+    assert((void("void helps to avoid 'unused value' warning"), std::pow(vector.size(), 2) == matrix.size()));
 
     size_t scale = vector.size();
     size_t row = vector.size();
