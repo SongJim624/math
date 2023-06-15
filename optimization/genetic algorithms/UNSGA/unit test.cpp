@@ -1,8 +1,8 @@
 #include <iostream>
 #include <fstream>
-#include "unsga.h"
+#include "unsga.hpp"
 
-class Objective : public Optimizor::Objective
+class Objective : public Optimizor::Objective<double>
 {
 private:
 	size_t decisions_ = 2;
@@ -31,13 +31,13 @@ public:
 	}
 };
 
-class Constraint : public Optimizor::Constraint
+class Constraint : public Optimizor::Constraint<double>
 {
 public:
 	virtual const double* operator() (const double* decisions, const double* objectives, double* voilations = nullptr) {}
 };
 
-class Configurations : public Optimizor::Configuration
+class Configurations : public Optimizor::Configuration<double>
 {
 private:
 	const size_t decisions_ = 2;
@@ -78,10 +78,9 @@ public:
 	}
 };
 
-
 int main()
 {
-	std::unique_ptr<Optimization::Configuration> config = std::make_unique<Configurations>();
+	std::unique_ptr<Optimization::Configuration<double>> config = std::make_unique<Configurations>();
 	config->objective = std::make_unique<Objective>();
 	config->constraint = std::make_unique<Constraint>();
 
@@ -91,7 +90,7 @@ int main()
 	(*config)["division"] = size_t(10);
 	(*config)["population"] = size_t(1000);
 
-	std::unique_ptr<Optimization::Optimizer> optimizer = std::make_unique<UNSGA>();
+	std::unique_ptr<Optimization::Optimizor<double, std::allocator<double>>> optimizer = std::make_unique<UNSGA<double, std::allocator<double>>>();
 	auto results = optimizer->Optimize(config.get());
 	results->Write("results.txt");
 	results = nullptr;

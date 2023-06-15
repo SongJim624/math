@@ -1,18 +1,22 @@
-#include "vector.hpp"
-#include "matrix.hpp"
+#include <vector>
 
 #ifndef _MATH_BASIC_EIGENLIKE_DOOLITLE_
 #define _MATH_BASIC_EIGENLIKE_DOOLITLE_
-template<typename T>
-void Doolitle(const Matrix<T>& matrix, Vector<T>& vector) {
-    size_t scale = matrix.row();
-    size_t row = scale;
-    size_t column = scale;
+template<typename T, class allocator>
+void Doolitle(const std::vector<T, allocator>& matrix, std::vector<T, allcoator>& vector)
+{
+    std::assert(void("size problem!"), std::pow(vector.size(), 2) == matrix.size());
 
-    Matrix<T> temporary = matrix;
+    size_t scale = vector.size();
+    size_t row = vector.size();
+    size_t column = vector.size();
 
-    for(size_t r = 1; r < row; ++r) {
-        temporary(r, 0) /= matrix(0, 0);
+    std::vector<T, allocator> temporary = matrix;
+
+    for(size_t r = 1; r < row; ++r)
+    {
+//        temporary(r, 0) /= matrix(0, 0);
+        temporary[r * column] /= matrix[0];
     }
 
     for(size_t k = 1; k < scale; ++k)
@@ -67,5 +71,11 @@ void Doolitle(const Matrix<T>& matrix, Vector<T>& vector) {
 
         vector[r] = (vector[r] - sum) / temporary(r, r);
     }
+}
+
+template<typename T, class allocator>
+void Doolitle(std::vector<T, allocator>& matrix, std::vector<T, allocator>& vector)
+{
+
 }
 #endif // !_MATH_BASIC_EIGENLIKE_DOOLITLE_

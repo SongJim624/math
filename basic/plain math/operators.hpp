@@ -4,7 +4,6 @@
 #include "divide.hpp"
 #include "scale.hpp"
 #include "power.hpp"
-#include "vector.hpp"
 #include <concepts>
 #include <type_traits>
 

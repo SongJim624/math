@@ -7,6 +7,7 @@
 
 #ifndef _MATH_OPTIMIZATION_OPTIMIZOR_
 #define _MATH_OPTIMIZATION_OPTIMIZOR_
+template<typename T, class allocator = std::allocator<T>>
 class Optimizor
 {
 public:
@@ -20,45 +21,48 @@ public:
 	virtual ~Optimizor(){};
 };
 
-class Optimizor::Objective
+template<typename T, class allocator>
+class Optimizor<T, allocator>::Objective
 {
 public:
-	virtual const double* operator() (const double* decisions, double* objectives) = 0;
+	virtual void operator() (const T* decisions, T* objectives) = 0;
 	virtual ~Objective() {}
 };
 
-class Optimizor::Constraint
+template<typename T, class allocator>
+class Optimizor<T, allocator>::Constraint
 {
 public:
-	virtual const double* operator() (const double* decisions, const double* objectives, double* voilations = nullptr) = 0;
+	virtual void operator() (const T* decisions, const T*& objectives, T* voilations) = 0;
 	virtual ~Constraint() {}
 };
 
-class Optimizor::Result
+template<typename T, class allocator>
+class Optimizor<T, allocator>::Result
 {
 public:
-	virtual std::vector<std::vector<double>> decisions() const = 0;
-	virtual std::vector<std::vector<double>> objectives() const = 0;
+	virtual std::vector<std::vector<T, allocator>> decisions() const = 0;
+	virtual std::vector<std::vector<T, allocator>> objectives() const = 0;
 	virtual void Write(const char*) const = 0;
 	virtual ~Result() {}
 };
 
-class Optimizor::Configuration
+template<typename T, class allocator>
+class Optimizor<T, allocator>::Configuration
 {
-public:
-	using T = std::variant<size_t, double, std::vector<double>>;
-
 private:
-	std::map<std::string, T> dictionary_;
+	std::map<std::string, std::variant<size_t, T, std::vector<T, allocator>>> dictionary_;
 
 public:
-	T operator [] (const std::string& name) const {
+	auto operator [] (const std::string& name) const
+	{
 		auto iter = dictionary_.find(name);
 		assert((void("item " + name + " not found!"), iter != dictionary_.end()));
 		return iter->second;
 	}
 
-	T& operator [] (const std::string& name) {
+	auto& operator [] (const std::string& name)
+	{
 		return dictionary_[name];
 	}
 
@@ -67,9 +71,9 @@ public:
 	virtual size_t scales() const = 0;
 	virtual size_t constraints() const = 0;
 
-	virtual const double* uppers() const = 0;
-	virtual const double* lowers() const = 0;
-	virtual const bool* integers() const = 0;
+	virtual std::vector<T, allocator> uppers() const = 0;
+	virtual std::vector<T, allocator> lowers() const = 0;
+	virtual std::vector<T, allocator> integers() const = 0;
 	virtual ~Configuration(){}
 public:
 
