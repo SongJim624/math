@@ -1,9 +1,9 @@
-#include <vector>
+#include "plain.h"
 
 #ifndef _MATH_BASIC_EIGENLIKE_DOOLITLE_
 #define _MATH_BASIC_EIGENLIKE_DOOLITLE_
-template<typename T, class allocator>
-void Doolitle(const std::vector<T, allocator>& matrix, std::vector<T, allocator>& vector)
+template<MATRIX M, VECTOR V>
+void Doolitle(const M& matrix, V& vector)
 {
     assert((void("void helps to avoid 'unused value' warning"), std::pow(vector.size(), 2) == matrix.size()));
 
@@ -11,12 +11,11 @@ void Doolitle(const std::vector<T, allocator>& matrix, std::vector<T, allocator>
     size_t row = vector.size();
     size_t column = vector.size();
 
-    std::vector<T, allocator> temporary = matrix;
+    auto temporary = matrix;
 
     for(size_t r = 1; r < row; ++r)
     {
-//        temporary(r, 0) /= matrix(0, 0);
-        temporary[r * column] /= matrix[0];
+        temporary(r, 0) /= matrix(0, 0);
     }
 
     for(size_t k = 1; k < scale; ++k)
@@ -71,11 +70,5 @@ void Doolitle(const std::vector<T, allocator>& matrix, std::vector<T, allocator>
 
         vector[r] = (vector[r] - sum) / temporary(r, r);
     }
-}
-
-template<typename T, class allocator>
-void Doolitle(std::vector<T, allocator>& matrix, std::vector<T, allocator>& vector)
-{
-
 }
 #endif // !_MATH_BASIC_EIGENLIKE_DOOLITLE_
