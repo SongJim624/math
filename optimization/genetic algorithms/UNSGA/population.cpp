@@ -1,9 +1,6 @@
-#include "unsga.hpp"
+#include "unsga.h"
 
-#ifndef _MATH_OPTIMIZATION_UNSGA_POPULATION_
-#define _MATH_OPTIMIZATION_UNSGA_POPULATION_
-template<typename T, class allocator>
-UNSGA<T, allocator>::Population::Population(Optimizor<T, allocator>::Configuration* configuration)
+UNSGA::Population::Population(Optimizor::Configuration* configuration)
 {
     selector_ = std::make_unique<Reference>(configuration);
     reproducer_ = std::make_unique<Reproducor>(configuration);
@@ -18,8 +15,7 @@ UNSGA<T, allocator>::Population::Population(Optimizor<T, allocator>::Configurati
     }
 }
 
-template<typename T, class allocator>
-UNSGA<T, allocator>::Population::Layer UNSGA<T, allocator>::Population::sort()
+UNSGA::Population::Layer UNSGA::Population::sort()
 {
     Layer results{ {individuals_.begin()->get()} };
 //mutually exclusive dominating and dominated in a layer when comparing all the individuals with a new one

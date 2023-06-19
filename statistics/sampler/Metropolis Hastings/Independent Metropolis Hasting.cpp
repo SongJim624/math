@@ -15,7 +15,7 @@ void Independent_Metropolis_Hasting(size_t length, double * samples)
         d->density(samples + i - 1, F, 2);
         p->density(samples + i - 1, G, 2);
 
-        if(fminf(F[1] * G[0] / (F[0] * G[1]), 1) > U[i])
+        if(std::min(F[1] * G[0] / (F[0] * G[1]), 1) > U[i])
             Y[i] = Y[i - 1];
     }
 

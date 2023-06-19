@@ -7,7 +7,6 @@
 
 #ifndef _MATH_OPTIMIZATION_OPTIMIZOR_
 #define _MATH_OPTIMIZATION_OPTIMIZOR_
-template<typename T, class allocator = std::allocator<T>>
 class Optimizor
 {
 public:
@@ -21,37 +20,31 @@ public:
 	virtual ~Optimizor(){};
 };
 
-template<typename T, class allocator>
-class Optimizor<T, allocator>::Objective
+class Optimizor::Objective
 {
 public:
-	virtual void operator() (const T* decisions, T* objectives) = 0;
+	virtual void operator() (const double* decisions, double* objectives) = 0;
 	virtual ~Objective() {}
 };
 
-template<typename T, class allocator>
-class Optimizor<T, allocator>::Constraint
+class Optimizor::Constraint
 {
 public:
-	virtual void operator() (const T* decisions, const T*& objectives, T* voilations) = 0;
+	virtual void operator() (const double* decisions, const double* objectives, double* voilations) = 0;
 	virtual ~Constraint() {}
 };
 
-template<typename T, class allocator>
-class Optimizor<T, allocator>::Result
+class Optimizor::Result
 {
 public:
-	virtual std::vector<std::vector<T, allocator>> decisions() const = 0;
-	virtual std::vector<std::vector<T, allocator>> objectives() const = 0;
 	virtual void Write(const char*) const = 0;
 	virtual ~Result() {}
 };
 
-template<typename T, class allocator>
-class Optimizor<T, allocator>::Configuration
+class Optimizor::Configuration
 {
 private:
-	std::map<std::string, std::variant<size_t, T, std::vector<T, allocator>>> dictionary_;
+	std::map<std::string, std::variant<size_t, double, std::vector<double>>> dictionary_;
 
 public:
 	auto operator [] (const std::string& name) const
@@ -71,9 +64,9 @@ public:
 	virtual size_t scales() const = 0;
 	virtual size_t constraints() const = 0;
 
-	virtual std::vector<T, allocator> uppers() const = 0;
-	virtual std::vector<T, allocator> lowers() const = 0;
-	virtual std::vector<T, allocator> integers() const = 0;
+	virtual std::vector<double> uppers() const = 0;
+	virtual std::vector<double> lowers() const = 0;
+	virtual std::vector<double> integers() const = 0;
 	virtual ~Configuration(){}
 public:
 

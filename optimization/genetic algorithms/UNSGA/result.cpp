@@ -1,13 +1,12 @@
 
-#include "population.hpp"
+#include "population.h"
 
-template<typename T, class allocator>
+
 std::vector<std::vector<T, allocator>> UNSGA<T, allocator>::Population::decisions() const
 {
 	return {};
 }
 
-template<typename T, class allocator>
 std::vector<std::vector<T, allocator>> UNSGA<T, allocator>::Population::objectives() const
 {
 	return {};

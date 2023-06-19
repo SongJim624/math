@@ -18,30 +18,30 @@
 #define _MATH_OPTIMIZATION_UNSGA_
 namespace math = Plain;
 using namespace math;
+template<typename T>
+using Matrix = std::vector<T>;
 
-template<typename T, class allocator>
-class UNSGA : public Optimizor<T, allocator>
+class UNSGA : public Optimizor
 {
 private:
 	class Population;
 	std::unique_ptr<Population> population_;
 
 public:
-	virtual const Optimizor<T, allocator>::Result* Optimize(Optimizor<T, allocator>::Configuration* configuration)
+	virtual const Optimizor::Result* Optimize(Optimizor::Configuration* configuration)
 	{
 		population_ = std::make_unique<Population>(configuration);
 
-		for (size_t i = 0; i < std::get<size_t>(*configuration)["maximum"]; ++i)
+		for (size_t i = 0; i < std::get<size_t>((*configuration)["maximum"]); ++i)
 		{
 			population_->Evolve();
 		}
 
-		return reinterpret_cast<Optimizor<T, allocator>::Result*>(population_.get());
+		return reinterpret_cast<Optimizor::Result*>(population_.get());
 	}
 };
 
-template<typename T, class allocator>
-class UNSGA<T, allocator>::Population : public Optimizor<T, allocator>::Result
+class UNSGA::Population : public Optimizor::Result
 {
 private:
     class Individual;
@@ -51,7 +51,7 @@ private:
 	using Layer = std::list<std::list<Individual*>>;
 
 private:
-    Optimizor<T, allocator>::Configuration* configuration_;
+    Optimizor::Configuration* configuration_;
 
 	std::list<std::unique_ptr<Individual>> individuals_;
     std::unique_ptr<Reference> selector_;
@@ -62,25 +62,20 @@ private:
 
 private:
 	virtual void Write(const char *) const;
-	virtual std::vector<std::vector<T, allocator>> decisions() const;
-	virtual std::vector<std::vector<T, allocator>> objectives() const;
 
 public:
     void Evolve();
-
-	Population(Optimizor<T, allocator>::Configuration* configuration);
+	Population(Optimizor::Configuration* configuration);
 };
 
-template<typename T, class allocator>
-class UNSGA<T, allocator>::Population::Individual
+class UNSGA::Population::Individual
 {
 public:
-    std::vector<T, allocator> decisions, objectives, voilations;
-	Individual(const std::vector<T, allocator>& decision, size_t dimension, size_t constriant);
+    Matrix<double> decisions, objectives, voilations;
+	Individual(const std::vector<double>& decision, size_t dimension, size_t constriant);
 };
 
-template<typename T, class allocator>
-class UNSGA<T, allocator>::Population::Reference
+class UNSGA::Population::Reference
 {
 private:
     size_t dimension_;
@@ -91,35 +86,34 @@ private:
 	void normalize(Series& elites, Series& cirticals);
 
 public:
-    Reference(Optimizor<T, allocator>::Configuration* configuration);
+    Reference(Optimizor::Configuration* configuration);
     Series select(Layer layers);
 };
 
-template<typename T, class allocator>
-class UNSGA<T, allocator>::Population::Reference::Point
+class UNSGA::Population::Reference::Point
 {
 private:
-    std::vector<T, allocator> location_;
+    std::vector<double> location_;
 
 public:
     size_t count;
     std::list<Individual*> associated;
 
 public:
-    T distance(const std::vector<T, allocator>& point);
-    Point(const std::vector<T, allocator>& location);
+    double distance(const std::vector<double>& point);
+    Point(const std::vector<double>& location);
 };
 
-template<typename T, class allocator>
-class UNSGA<T, allocator>::Population::Reproducor
+
+class UNSGA::Population::Reproducor
 {
 private:
-	T cross_, mutation_, threshold_;
-	std::vector<T, allocator> uppers_, lowers_, integers_;
+	double cross_, mutation_, threshold_;
+	Matrix<double> uppers_, lowers_, integers_;
 
 	std::random_device device_;
 	std::mt19937_64 generator_;
-	std::uniform_real_distribution<T> uniform_;
+	std::uniform_real_distribution<double> uniform_;
 
 private:
 	void check(Individual& individual);
@@ -127,7 +121,7 @@ private:
     void mutate(Individual& individual);
 
 public:
-	Reproducor(Optimizor<T, allocator>::Configuration* configuration);
+	Reproducor(Optimizor::Configuration* configuration);
 	Series reproduce(std::pair<Series, Series> population);
 };
 #endif //!_MATH_OPTIMIZATION_UNSGA_

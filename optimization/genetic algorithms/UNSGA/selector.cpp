@@ -1,21 +1,16 @@
-#include "unsga.hpp"
+#include "unsga.h"
 
-#ifndef _MATH_OPTIMIZATION_UNSGA_REFERENCE_
-#define _MATH_OPTIMIZATION_UNSGA_REFERENCE_
-template<typename T, class allocator>
-T Scale(size_t dimensions, size_t dimension, const std::vector<T, allocator>& objectives)
+double Scale(size_t dimensions, size_t position, const std::vector<double>& objectives)
 {
-    std::vector<T, allocator> weights(dimensions, 1e-6);
-    weights[dimension] = 1;
+    std::vector<double> weights(dimensions, 1e-6);
+    weights[position] = 1;
     weights = objectives / weights;
 
     return *std::max_element(weights.begin(), weights.end());
 }
 
-template<typename T>
-void Reference<T>::Interception(const Series<T>& individuals) {
-
-
+void Reference::Interception(const Series& individuals)
+{
     /*
     for (const auto& interception : interception_)
     {
@@ -28,12 +23,11 @@ void Reference<T>::Interception(const Series<T>& individuals) {
     */
 }
 
-template<typename T, class allocator>
-void UNSGA<T, allocator>::Population::Reference::normalize(Series& elites, Series& criticals)
+void UNSGA::Population::Reference::normalize(Series& elites, Series& criticals)
 {
     auto ideal = [this](Series individuals)
     {
-        std::vector<T, allocator> ideal_(dimension_, +INFINITY);
+        std::vector<double> ideal_(dimension_, +INFINITY);
 
         for(const auto& individual : individuals)
         {
@@ -46,32 +40,33 @@ void UNSGA<T, allocator>::Population::Reference::normalize(Series& elites, Serie
         return ideal_;
     };
 
-    std::vector<T, allocator> ideal_ = ideal();
+    std::vector<double> ideal_ = ideal();
 
 
     auto interception = [this, ideal_](Series individuals)
     {
-        std::vector<std::map<T, Individual*>> rank(dimension_);
-        for (auto individual : individuals) {
+        std::vector<std::map<double, Individual*>> rank(dimension_);
+        for (auto individual : individuals)
+        {
             for (size_t objective = 0; objective < dimension_; ++objective)
             {
                 rank[objective].insert({ Scale(objective, individual->objectives - ideal_), individual });
             }
         }
 
-        std::vector<T, allocator> matrix(dimension_ * dimension_);
+        std::vector<double> matrix(dimension_ * dimension_);
 
         for(size_t i = 0; i < dimension_; ++i)
         {
             matrix[i] = rank[i].begin()->second->objectives - ideal_;
         }
 
-        std::vector<T, allocator> interception_(dimension_, 1);
+        std::vector<double> interception_(dimension_, 1);
         solve(matrix, interception_);
         return interception_;
     };
 
-    std::vector<T, allocator> interception_ = interception(elites);
+    std::vector<double> interception_ = interception(elites);
 
     auto normalization = [ideal_, interception_](Series& individuals)
     {
@@ -85,26 +80,26 @@ void UNSGA<T, allocator>::Population::Reference::normalize(Series& elites, Serie
     normalization(criticals);
 }
 
-template<typename T>
-void Reference<T>::Associate(Series<T> solution, Series<T>& critical)
+void Reference::Associate(Series solution, Series& critical)
 {
     for (const auto& individual : solution)
     {
-        std::map<T, Point<T>*> rank;
+        std::map<double, Point<double>*> rank;
 
-        for (auto& point : points_) {
-            T distance = point->distance(individual->objectives);
+        for (auto& point : points_)
+        {
+            double distance = point->distance(individual->objectives);
             rank.insert({ distance, point.get() });
         }
 
         rank.begin()->second->count++;
     }
 
-    std::map<Point<T>*, std::map<T, Individual<T>*>> association;
+    std::map<Point*, std::map<double, Individual*>> association;
 
     for (const auto& individual : critical)
     {
-        std::map<T, Point<T>*> rank;
+        std::map<double, Point<double>*> rank;
 
         for (auto& point : points_)
         {
@@ -129,11 +124,11 @@ void Reference<T>::Associate(Series<T> solution, Series<T>& critical)
     */
 }
 
-template<typename T>
-void Reference<T>::Dispense(size_t needed, Series<T>& solution, Series<T>& critical) {
+template<typename double>
+void Reference<double>::Dispense(size_t needed, Series<double>& solution, Series<double>& critical) {
     for (size_t i = 0; i < needed; ++i)
     {
-        points_.sort([](std::unique_ptr<Point<T>>& lhs, std::unique_ptr<Point<T>>& rhs) {
+        points_.sort([](std::unique_ptr<Point<double>>& lhs, std::unique_ptr<Point<double>>& rhs) {
             bool left = lhs->associated.empty();
             bool right = rhs->associated.empty();
             return left ? false : (right ? true : lhs->count < rhs->count);});
@@ -151,9 +146,9 @@ void Reference<T>::Dispense(size_t needed, Series<T>& solution, Series<T>& criti
     }
 }
 
-template<typename T>
-std::pair<Series<T>, Series<T>> Reference<T>::Select(Layer<T> layers) {
-    std::pair<Series<T>, Series<T>> result{ {}, {} };
+template<typename double>
+std::pair<Series<double>, Series<double>> Reference<double>::Select(Layer<double> layers) {
+    std::pair<Series<double>, Series<double>> result{ {}, {} };
 
     size_t selection = 0;
     for(const auto& layer : layers) {
@@ -205,17 +200,17 @@ std::pair<Series<T>, Series<T>> Reference<T>::Select(Layer<T> layers) {
     return result;
 }
 
-template<typename T>
-Reference<T>::Reference(Configuration<T>* configuration) {
+template<typename double>
+Reference<double>::Reference(Configuration<double>* configuration) {
     dimension_ = configuration->dimensions;
     size_t amount = Combination(dimension_, configuration->division);
 
     ideal_.resize(dimension_, +INFINITY);
     interception_.resize(dimension_, 1);
 
-    std::vector<Vector<T>> costs(configuration->population, Vector<T>(dimension_));
+    std::vector<Vector<double>> costs(configuration->population, Vector<double>(dimension_));
 
-    std::vector<T*> locations(amount, nullptr);
+    std::vector<double*> locations(amount, nullptr);
     for(size_t i = 0; i < amount; ++i){
         locations[i] = &costs[i][0];
     }
@@ -223,8 +218,7 @@ Reference<T>::Reference(Configuration<T>* configuration) {
     Plain(dimension_, configuration->division, locations);
 
     for (size_t i = 0; i < amount; ++i) {
-        costs[i] = (T) 1 / configuration->division * costs[i];
-        points_.push_back(std::make_unique<Point<T>>(costs[i]));
+        costs[i] = (double) 1 / configuration->division * costs[i];
+        points_.push_back(std::make_unique<Point<double>>(costs[i]));
     }
 }
-#endif //!_MATH_OPTIMIZATION_UNSGA_

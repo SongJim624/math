@@ -1,14 +1,17 @@
 #include <vector>
-#include "vector.hpp"
 
 #ifndef _MATH_BASIC_EIGENLIKE_MATRIX_
 #define _MATH_BASIC_EIGENLIKE_MATRIX_
+
+template <typename T>
+using Vector = std::vector<T>;
+
 template<typename T>
 class Matrix
 {
 private:
+    std::vector<T> data_;
     size_t row_, column_;
-    Vector<T> data_;
 
 public:
     T& operator () (size_t row, size_t column);
