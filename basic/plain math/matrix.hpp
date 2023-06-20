@@ -1,90 +1,74 @@
 #include <vector>
+#include <type_traits>
 
-#ifndef _MATH_BASIC_EIGENLIKE_MATRIX_
-#define _MATH_BASIC_EIGENLIKE_MATRIX_
-
-template <typename T>
-using Vector = std::vector<T>;
-
-template<typename T>
-class Matrix
+namespace math
 {
-private:
-    std::vector<T> data_;
-    size_t row_, column_;
-
-public:
-    T& operator () (size_t row, size_t column);
-    T operator () (size_t row, size_t column) const;
-
-    size_t row() const;
-    size_t column() const;
-
-public:
-    Matrix(size_t row, size_t column);
-    Matrix(const std::vector<std::vector<T>>& matrix);
-    Matrix(const std::vector<Vector<T>>& matrix);
-    Matrix(size_t row, size_t column, const Vector<T>& data);
-};
-
-template<typename T>
-Matrix<T>::Matrix(size_t row, size_t column) : row_(row), column_(column)
-{
-    data_.resize(row * column);
-}
-
-template<typename T>
-Matrix<T>::Matrix(size_t row, size_t column, const Vector<T>& data) : row_(row), column_(column), data_(data)
-{
-}
-
-template<typename T>
-Matrix<T>::Matrix(const std::vector<std::vector<T>>& matrix)
-{
-    row_ = matrix.size();
-    column_ = matrix[0].size();
-
-    for(size_t r = 0; r < row_; ++r)
+    template<typename T>
+    T* allocate(size_t length)
     {
-        assert(matrix[r].size() == column_ && "columns of the matrix are not same!");
-        data_.insert(data_.end(), matrix[r].begin(), matrix[r].end());
+        return new T[length];
+        //return mkl_calloc(length, sizeof(T), 64);
     }
-}
 
-template<typename T>
-Matrix<T>::Matrix(const std::vector<Vector<T>>& matrix)
-{
-    row_ = matrix.size();
-    column_ = matrix[0].size();
-
-    for (size_t r = 0; r < row_; ++r)
+    template<typename T>
+    void free(T** pointer)
     {
-        assert(matrix[r].size() == column_ && "columns of the matrix are not same!");
-        data_.append(matrix[r]);
+        delete[] *pointer;
+        *pointer = nullptr;
     }
-}
 
-template<typename T>
-size_t Matrix<T>::row() const
-{
-    return row_;
-}
+	template<typename T>
+	concept SCALAR = requires(T scalar)
+	{
+		std::is_arithmetic<T>::value == true;
+	};
 
-template<typename T>
-size_t Matrix<T>::column() const
-{
-    return column_;
-}
+	template<typename T>
+	concept MATRIX = requires(T matrix, size_t row, size_t col)
+	{
+		requires VECTOR<T>;
+		matrix.row();
+		matrix.col();
+		matrix(row, col);
+	};
+    template<typename T, size_t ROW = 0, size_t COL = 0>
+    class matrix
+    {
+    private:
+        T* data_;
+        size_t row_, col_;
 
-template<typename T>
-T& Matrix<T>::operator() (size_t row, size_t column)
-{
-    return data_[row * column_ + column];
-}
+    public:
+        size_t row() const
+        {
+            return row_;
+        }
 
-template<typename T>
-T Matrix<T>::operator() (size_t row, size_t column) const
-{
-    return data_[row * column_ + column];
+        size_t col() const
+        {
+            return col_;
+        }
+
+        size_t size() const;
+        {
+            return row_ * col_;
+        }
+
+    public:
+        T operator() (size_t row, size_t col) const;
+        T& operator() (size_t row, size_t col) const;
+        T operator [] (size_t pos) const;
+        T& operator [] (size_t pos);
+
+    public:
+    //    template< typename T, size_t ROW, size_t COL>
+    //    matrix slice(std::pair<size_t, size_t>, std::pair<size_t, size_t>)
+
+    public:
+        //enable if
+    //    void resize(size_t row, size_t col);
+
+    public:
+        matrix(size_t row, size_t col);
+    };
 }
-#endif //!_MATH_BASIC_EIGENLIKE_MATRIX_
