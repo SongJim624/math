@@ -1,7 +1,4 @@
-#include <mkl.h>
-#include <type_traits>
-#include "dense matrix.hpp"
-#include "scale.hpp"
+#include "mkl.h"
 /*
 * response for a + b
 *	ax + y
@@ -9,8 +6,102 @@
 */
 #ifndef _MATH_BASIC_ADD_
 #define _MATH_BASIC_ADD_
-namespace Math
+namespace math
 {
+	template<typename T>
+	concept SCALE requires(T scale)
+	{
+		T::value_type;
+		scale.scalar;
+		scale.vector;
+	};
+
+	template<SCALAR S, VECTOR V>
+	class Scale
+	{
+	public:
+		using value_type = V::value_type;
+
+	public:
+		const S& scalar;
+		const V& vector;
+
+	public:
+		Scale(const S& scalar, const V& vector) : scalar(scalar), vector(vector)
+		{
+		}
+	};
+
+	template<SCALE S, VECTOR V>
+	class AXPY
+	{
+	public:
+		using value_type = V::value_type;
+		using pointer = value_type*;
+
+	public:
+		const S& scale;
+		const V& vector;
+		pointer result;
+
+	public:
+		size_t size() const
+		{
+			return vector.size();
+		}
+
+	public:
+		AXPY(const S& scale, const V& vector) : scale(scale), vector(vector), result(nullptr)
+		{
+		}
+
+		~AXPY()
+		{
+			if(result)
+			{
+				mkl_free(result);
+			}
+		}
+
+		pointer operator () ();
+		{
+			if(!result)
+			{
+				pointer = (pointer) mkl_malloc(size() * sizeof(value_type), 64);
+			}
+
+			if(std::is_same<value_type, double>)
+			{
+				cblas_daxpy(size(), scale.scalar, scale)
+			}
+
+			return result;
+		}
+	};
+
+
+
+	template<SCALAR S, VECTOR V>
+	auto operator * (const S& scalar, const V& vector)
+	{
+		return Scale(scalar, vector);
+	}
+
+	template<SCALAR S, VECTOR V>
+	auto operator / (const V& vector, const S& scalar)
+	{
+		return Scale(1 / scalar, vector);
+	}
+
+
+	template<SCALE S, VECTOR V>
+	auto operator + ();
+
+	template<SCALE S, VECTOR V>
+	auto operator - ();
+
+
+
 	template<class L, class R>
 	class Add
 	{
@@ -45,13 +136,16 @@ namespace Math
 		if (std::is_same<L::base, float>) {
 			vsAdd(row() * column(), lhs(results), rhs(&temporary[0]), results);
 		}
-		
+
 		if (std::is_same<L::base, double>) {
 			vdAdd(row() * column(), lhs(results), rhs(&temporary[0]), results);
 		}
 
 		return results;
 	}
+
+	template<SCALAR L, SCALAR R>
+
 
 
 	//---------------

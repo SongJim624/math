@@ -16,10 +16,7 @@
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_
 #define _MATH_OPTIMIZATION_UNSGA_
-namespace math = Plain;
 using namespace math;
-template<typename T>
-using Matrix = std::vector<T>;
 
 class UNSGA : public Optimizor
 {

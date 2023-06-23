@@ -1,6 +1,6 @@
 #ifndef _DISTRIBUTION_
 #define _DISTRIBUTION_
-namespace Math
+namespace math
 {
     template<typename T>
     class Distribution
