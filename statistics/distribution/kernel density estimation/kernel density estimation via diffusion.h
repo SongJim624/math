@@ -39,9 +39,15 @@ private:
     double density_, possibility_;
     double width_, *points_;
 
-public:
-    virtual double * density(int size, const double * points, double * values) const;
+private:
+    virtual void density(size_t size, const double * points, double * values);
     virtual double * probability(size_t size, const double * points, double * values) const;
+
+public:
+
+
+//    virtual double * density(int size, const double * points, double * values) const;
+//    virtual double * probability(size_t size, const double * points, double * values) const;
 
 public:
     KDE(int size, const double* points, double max, double min);

@@ -2,12 +2,11 @@
 #define _DISTRIBUTION_
 namespace math
 {
-    template<typename T>
     class Distribution
     {
     public:
-        virtual void density(size_t, const T*, T*) = 0;
-        virtual void probability(size_t, const T*, T*) = 0;
+        virtual void density(size_t, const double*, double*) = 0;
+        virtual void probability(size_t, const double*, double*) = 0;
     };
 
     template<class T>

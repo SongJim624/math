@@ -10,103 +10,100 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <variant>
+#include <exception>
 
-#include "../../../basic/plain math/plain.h"
+#include "../../../basic/math.h"
 #include "../../optimizor.h"
 
+//This is not included in the math namespace
+//it is just an implementation and should be load via a library
+//and instanced by a factory
 #ifndef _MATH_OPTIMIZATION_UNSGA_
 #define _MATH_OPTIMIZATION_UNSGA_
-using namespace math;
-
-class UNSGA : public Optimizor
+class UNSGA : public math::Optimizor
 {
 private:
 	class Population;
 	std::unique_ptr<Population> population_;
 
 public:
-	virtual const Optimizor::Result* Optimize(Optimizor::Configuration* configuration)
-	{
-		population_ = std::make_unique<Population>(configuration);
-
-		for (size_t i = 0; i < std::get<size_t>((*configuration)["maximum"]); ++i)
-		{
-			population_->Evolve();
-		}
-
-		return reinterpret_cast<Optimizor::Result*>(population_.get());
-	}
+	virtual const Optimizor::Result& Optimize(Optimizor::Configuration& configuration);
 };
 
 class UNSGA::Population : public Optimizor::Result
 {
 private:
-    class Individual;
-    class Reference;
-    class Reproducor;
+	class Individual;
+	class Reference;
+	class Reproducor;
 	using Series = std::list<Individual*>;
-	using Layer = std::list<std::list<Individual*>>;
 
 private:
-    Optimizor::Configuration* configuration_;
-
-	std::list<std::unique_ptr<Individual>> individuals_;
-    std::unique_ptr<Reference> selector_;
-    std::unique_ptr<Reproducor> reproducer_;
+	Optimizor::Objective& function_;
+	Series individuals_;
+	std::unique_ptr<Reference> selector_;
+	std::unique_ptr<Reproducor> reproducer_;
 
 private:
-	std::list<std::list<Individual*>> sort();
+	std::list<Series> sort();
 
 private:
 	virtual void Write(const char *) const;
 
 public:
-    void Evolve();
-	Population(Optimizor::Configuration* configuration);
+	void Evolve();
+	Population(Optimizor::Configuration& configuration);
+	~Population();
 };
 
 class UNSGA::Population::Individual
 {
 public:
-    Matrix<double> decisions, objectives, voilations;
-	Individual(const std::vector<double>& decision, size_t dimension, size_t constriant);
+	double *decisions, *objectives, *voilations;
+
+public:
+	Individual(size_t scale, size_t dimension, size_t constriant);
+	~Individual();
 };
 
 class UNSGA::Population::Reference
 {
 private:
-    size_t dimension_;
-    class Point;
-	std::list<std::unique_ptr<Point>> points_;
+	const size_t dimension_;
+
+	class Point;
+	std::list<Point*> points_;
 
 private:
 	void normalize(Series& elites, Series& cirticals);
 
 public:
-    Reference(Optimizor::Configuration* configuration);
-    Series select(Layer layers);
+	Reference(const Optimizor::Configuration& configuration);
+	Series select(std::list<Series> layers);
 };
 
 class UNSGA::Population::Reference::Point
 {
 private:
-    std::vector<double> location_;
+	const size_t dimension_;
+	double* location_;
 
 public:
-    size_t count;
-    std::list<Individual*> associated;
+	size_t count;
+	std::list<Individual*> associated;
 
 public:
-    double distance(const std::vector<double>& point);
-    Point(const std::vector<double>& location);
+	double distance(const double * point) const;
+	Point(size_t dimension, const double * location);
 };
-
 
 class UNSGA::Population::Reproducor
 {
 private:
+	const size_t dimension, scale;
+	double *uppers_, *lowers_, *integers_;
 	double cross_, mutation_, threshold_;
-	Matrix<double> uppers_, lowers_, integers_;
 
 	std::random_device device_;
 	std::mt19937_64 generator_;
@@ -114,11 +111,11 @@ private:
 
 private:
 	void check(Individual& individual);
-    void cross(std::array<const Individual*, 2> parents, std::array<Individual*, 2> children);
-    void mutate(Individual& individual);
+	void cross(std::array<const Individual*, 2> parents, std::array<Individual*, 2> children);
+	void mutate(Individual& individual);
 
 public:
-	Reproducor(Optimizor::Configuration* configuration);
+	Reproducor(const math::Optimizor::Configuration& configuration);
 	Series reproduce(std::pair<Series, Series> population);
 };
 #endif //!_MATH_OPTIMIZATION_UNSGA_

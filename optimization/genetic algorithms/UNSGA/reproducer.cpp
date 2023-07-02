@@ -1,45 +1,51 @@
-#include "unsga.hpp"
+#include "unsga.h"
 
-#ifndef _MATH_OPTIMIZATION_UNSGA_REPRODUCER_
-#define _MATH_OPTIMIZATION_UNSGA_REPRODUCER_
-template<typename T, class allocator>
-void UNSGA<T, allocator>::Population::Reproducor::check(Individual& individual)
+UNSGA::Population::Reproducor::Reproducor(const math::Optimizor::Configuration& configuration) :
+    dimension(std::get<size_t>(configuration["dimension"])),
+    scale(std::get<size_t>(configuration["sacle"])),
+    cross_(std::get<double>(configuration["cross"])),
+    mutation_(std::get<double>(configuration["mutation"])),
+    threshold_(std::get<double>(configuration["threshold"]))
 {
-	for (size_t i = 0; i < scale_; ++i) {
-		individual.decisions[i] = std::max(std::min(individual.decisions[i], uppers_[i]), lowers_[i]);
 
-		if (integers_[i]) {
-			individual.decisions[i] = round(individual.decisions[i]);
-		}
+}
+
+
+void UNSGA::Population::Reproducor::check(Individual& individual)
+{
+	for (size_t i = 0; i < scale; ++i)
+    {
+        auto& value = individual.decisions[i];
+		value = std::max(std::min(individual.decisions[i], uppers_[i]), lowers_[i]);
+        value = integers_[i] ? std::round(value) : value;
 	}
 }
 
-template<typename T, class allocator>
-UNSGA<T, allocator>::Population::Reproducor::Reproducor(Optimizor<T, allocator>::Configuration* configuration)
+UNSGA::Population::Reproducor::Reproducor(const Optimizor::Configuration& configuration)
 {
     scale_ = configuration->scales;
 
-    uppers_ = std::get<std::vector<T, allocator>>(*configuration["uppers"]);
+    uppers_ = std::get<std::vector<double>>(*configuration["uppers"]);
     lowers_ = std::get<std::vector<T, allocator>>(*configuration["lowers"]);
     integers_ = std::get<std::vector<T, allocator>>(*configuration["integers"]);
 
-    cross_ = std::get<T>(*configuration["cross"]);
-    mutation_ = std::get<T>(*configuration["mutation"]);
-    threshold_ = std::get<T>(*configuration["threshold"]);
+    cross_ = std::get<double>(configuration["cross"]);
+    mutation_ = std::get<double>(configuration["mutation"]);
+    threshold_ = std::get<double>(configuration["threshold"]);
 }
 
-template<typename T, class allocator>
-void UNSGA<T, allocator>::Population::Reproducor::cross(std::array<const Individual*, 2> parents, std::array<Individual*, 2> children)
+
+void UNSGA::Population::Reproducor::cross(std::array<const Individual*, 2> parents, std::array<Individual*, 2> children)
 {
     std::vector<T, allocator> randoms(scale_);
 
     for(auto& random : randoms)
     {
         random = uniform_(generator_);
-        randoms = (randoms < 0.5) ? 2.0 * randoms : 0.5 / (1.0 - randoms);
+        random = (random < 0.5) ? 2.0 * random : 0.5 / (1.0 - random);
     }
 
-    randoms = randoms ^ (1 / (cross_ + 1));
+    math::pow(scale, randoms, 1 / (cross_ + 1), randoms);
 
     auto& father = parents[0]->decisions;
     auto& mother = parents[1]->decisions;
@@ -51,8 +57,8 @@ void UNSGA<T, allocator>::Population::Reproducor::cross(std::array<const Individ
     daughter = 0.5 * (father + mother + randoms * (father - mother));
 }
 
-template<typename T, class allocator>
-void UNSGA<T, allocator>::Population::Reproducor::mutate(Individual& individual)
+
+void UNSGA::Population::Reproducor::mutate(Individual& individual)
 {
     for (size_t i = 0; i < scale_; ++i)
     {
@@ -67,8 +73,7 @@ void UNSGA<T, allocator>::Population::Reproducor::mutate(Individual& individual)
     }
 }
 
-template<typename T, class allocator>
-UNSGA<T, allocator>::Population::Series UNSGA<T, allocator>::Population::Reproducor::reproduce(std::pair<Series, Series> population)
+UNSGA::Population::Series UNSGA::Population::Reproducor::reproduce(std::pair<Series, Series> population)
 {
     Series result, temporary;
 

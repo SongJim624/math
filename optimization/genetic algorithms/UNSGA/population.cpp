@@ -1,28 +1,50 @@
 #include "unsga.h"
 
-UNSGA::Population::Population(Optimizor::Configuration* configuration)
+UNSGA::Population::Population(Optimizor::Configuration& configuration) :
+    function_(*configuration.objective.get()),
+    selector_(std::make_unique<Reference>(configuration)),
+    reproducer_(std::make_unique<Reproducor>(configuration))
 {
-    selector_ = std::make_unique<Reference>(configuration);
-    reproducer_ = std::make_unique<Reproducor>(configuration);
+    size_t scale = std::get<size_t>(configuration["scale"]);
+    size_t constraint = std::get<size_t>(configuration["constraint"]);
+    size_t dimension = std::get<size_t>(configuration["dimension"]);
+    size_t population = std::get<size_t>(configuration["population"]);
 
-    for (size_t i = 0; i < configuration->population; ++i)
+    std::list<std::vector<double>> initials;
+
+    try
     {
-        individuals_.push_back(std::make_unique<Individual>(configuration->initialization[i]));
+        initials = std::get<std::list<std::vector<double>>>(configuration["initials"]);
+    }
+    catch(std::bad_alloc exception)
+    {
+    }
 
-        auto& individual = **individual_.rbegin();
-        *(configuration_->objective)(&individual.decisions[0], &individual.objectives[0]);
-        *(configuration_->constraint)(&individual.decisions[0], &individual.objectives[0], &individual.voilations[0]);
+    while(initials.size() < population)
+    {
+
+    };
+
+
+
+    for(const auto& decisions : initials)
+    {
+        auto individual = new Individual(dimension, scale, constraint);
+        math::copy(scale, &decisions[0], 1, individual->decisions, 1);
+
+        function_(individual->decisions, individual->objectives, individual->voilations);
+        individuals_.push_back(individual);
     }
 }
 
-UNSGA::Population::Layer UNSGA::Population::sort()
+std::list<UNSGA::Population::Series> UNSGA::Population::sort(Series individuals)
 {
-    Layer results{ {individuals_.begin()->get()} };
+    std::list<Series> results{ {individuals_.begin()->get()} };
 //mutually exclusive dominating and dominated in a layer when comparing all the individuals with a new one
 // improvement of the non dominate sort
 // if an individual is dominated by another which is in the upper layer,
 // it must be dominated by the other individuals in the upper layer
-    auto dominate = [](size_t dimension, double* lhs, double* rhs)
+    auto dominate = [](size_t dimension, T* lhs, T* rhs)
     {
         std::array<size_t, 3> counts{ 0, 0, 0 };
 
@@ -109,15 +131,12 @@ UNSGA::Population::Layer UNSGA::Population::sort()
     return results;
 }
 
-template<typename T, class allocator>
-void UNSGA<T, allocator>::Population::Evolve()
+void UNSGA::Population::Evolve()
 {
-    reproducer_->reproduce(selector_->select(sort()));
+    individuals_ = *reproduccer_(*selector_(sort()));
 
     for (auto& individual : individuals_)
     {
-        *(configuration_->objective)(&individual.decisions[0], &individual.objectives[0]);
-        *(configuration_->constraint)(&individual.decisions[0], &individual.objectives[0], &individual.voilations[0]);
+        *(configuration_->objective)(individual.decisions, individual.objectives, voilation);
     }
 }
-#endif //!_MATH_OPTIMIZATION_UNSGA_POPULATION_

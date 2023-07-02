@@ -1,15 +1,14 @@
 #include <iostream>
 #include <fstream>
-#include "unsga.hpp"
+#include "unsga.h"
 
-template<typename T>
-class Objective : public Optimizor<T, std::allocator<T>>::Objective
+class Objective : public math::Optimizor::Objective
 {
 private:
 	size_t decisions_ = 2;
 
 public:
-	virtual void operator() (const T* decisions, T* objectives)
+	virtual void operator() (const double * decisions, double * objectives, double * voilation)
 	{
 		objectives[0] = 0;
 
@@ -32,60 +31,10 @@ public:
 	}
 };
 
-template<typename T>
-class Constraint : public Optimizor<T, std::allocator<T>>::Constraint
-{
-public:
-	virtual void operator() (const T* decisions, const T* objectives, T* voilations = nullptr) {}
-};
-
-template<typename T>
-class Configuration : public Optimizor<T, std::allocator<T>>::Configuration
-{
-private:
-	const size_t decisions_ = 2;
-	const size_t objectives_ = 2;
-	std::vector<T, std::allocator<T>> uppers_ = {1, 1};
-	std::vector<T, std::allocator<T>> lowers_ = { -1, -1 };
-	std::vector<T, std::allocator<T>> integers_ = { 0, 0 };
-
-public:
-	virtual size_t scales() const
-	{
-		return decisions_;
-	}
-
-	virtual size_t dimensions() const
-	{
-		return objectives_;
-	}
-
-	virtual size_t constraints() const
-	{
-		return 0;
-	}
-
-	virtual std::vector<T, std::allocator<T>> uppers() const
-	{
-		return uppers_;
-	}
-
-	virtual std::vector<T, std::allocator<T>> lowers() const
-	{
-		return lowers_;
-	}
-
-	virtual std::vector<T, std::allocator<T>> integers() const
-	{
-		return integers_;
-	}
-};
-
 int main()
 {
-	std::unique_ptr < Optimizor<double, std::allocator<double>>::Configuration> config = std::make_unique<Configuration<double>>();
-	config->objective = std::make_unique<Objective<double>>();
-	config->constraint = std::make_unique<Constraint<double>>();
+	std::unique_ptr<math::Optimizor::Configuration> config = std::make_unique<math::Optimizor::Configuration>();
+	config->objective = std::make_unique<Objective>();
 
 	(*config)["cross"] = 0.8f;
 	(*config)["mutation"] = 0.8f;
@@ -93,10 +42,9 @@ int main()
 	(*config)["division"] = size_t(10);
 	(*config)["population"] = size_t(1000);
 
-	std::unique_ptr<Optimizor<double, std::allocator<double>>> optimizer = std::make_unique<UNSGA<double, std::allocator<double>>>();
-	auto results = optimizer->Optimize(config.get());
-	results->Write("results.txt");
-	results = nullptr;
+	std::unique_ptr<math::Optimizor> optimizer = std::make_unique<math::UNSGA>();
+	const auto& results = optimizer->Optimize(*config);
+	results.Write("results.txt");
 	std::cout << "hello" << std::endl;
 	return 0;
 };

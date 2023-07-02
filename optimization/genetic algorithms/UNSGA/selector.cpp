@@ -1,15 +1,18 @@
 #include "unsga.h"
 
-double Scale(size_t dimensions, size_t position, const std::vector<double>& objectives)
+//a scalar function
+double scale(size_t position, size_t dimension, const double * objective)
 {
-    std::vector<double> weights(dimensions, 1e-6);
-    weights[position] = 1;
-    weights = objectives / weights;
+    auto weights = std::unique_ptr<double[], decltype(&math::free)>{math::allocate(dimension), math::free};
 
-    return *std::max_element(weights.begin(), weights.end());
+//    double * weights = math::allocate(dimension, 1e-6);
+    weights[position] = 1;
+
+    math::div(dimension, objective, weights, weights);
+    return *std::max_element(weights.get(), weights.get() + dimension);
 }
 
-void Reference::Interception(const Series& individuals)
+void math::UNSGA::Population::Reference::Interception(const Series& individuals)
 {
     /*
     for (const auto& interception : interception_)
@@ -146,8 +149,9 @@ void Reference<double>::Dispense(size_t needed, Series<double>& solution, Series
     }
 }
 
-template<typename double>
-std::pair<Series<double>, Series<double>> Reference<double>::Select(Layer<double> layers) {
+
+std::pair<Series, Series> UNSGA::Population::Reference::select(std::list<Series> layers)
+{
     std::pair<Series<double>, Series<double>> result{ {}, {} };
 
     size_t selection = 0;
@@ -200,25 +204,16 @@ std::pair<Series<double>, Series<double>> Reference<double>::Select(Layer<double
     return result;
 }
 
-template<typename double>
-Reference<double>::Reference(Configuration<double>* configuration) {
-    dimension_ = configuration->dimensions;
-    size_t amount = Combination(dimension_, configuration->division);
+Reference::Reference(Optimizor::Configuration* configuration) :
+    dimension_(std::get<size_t>(*(configuration)("dimension")))
+    ideal_(allocate(dimension_)),
+    interception_(allocate(dimension_ * dimension_))
+{
+    std::iota(ideal_, ideal_ + dimension);
+    scal(dimension_, 1 / dimension_, ideal_, 1);
 
-    ideal_.resize(dimension_, +INFINITY);
-    interception_.resize(dimension_, 1);
-
-    std::vector<Vector<double>> costs(configuration->population, Vector<double>(dimension_));
-
-    std::vector<double*> locations(amount, nullptr);
-    for(size_t i = 0; i < amount; ++i){
-        locations[i] = &costs[i][0];
-    }
-
-    Plain(dimension_, configuration->division, locations);
-
-    for (size_t i = 0; i < amount; ++i) {
-        costs[i] = (double) 1 / configuration->division * costs[i];
-        points_.push_back(std::make_unique<Point<double>>(costs[i]));
+    while(std::next_permutation(ideal_, ideal_ + dimension))
+    {
+        points_.push_back(std::make_unique<Point>(dimension_, ideal_));
     }
 }

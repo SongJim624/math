@@ -19,14 +19,14 @@ namespace math
 
     public:
         size_t size() const;
-        T operator [] (size_t pos) const;
+        const T& operator [] (size_t pos) const;
         T& operator [] (size_t pos);
         std::vector<T, allocator<T>>& operator* ();
         const std::vector<T, allocator<T>>& operator* () const;
 
     public:
         vector(const vector& vec) = default;
-        vector(size_t length, T value);
+        vector(size_t length, T value = 0);
         vector(std::initializer_list<T> list);
         template<VECTOR V> vector(const V& expression);
         template<std::input_iterator I> vector(const I& begin, const I& end);
