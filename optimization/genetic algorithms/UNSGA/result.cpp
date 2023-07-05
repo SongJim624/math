@@ -2,18 +2,18 @@
 
 void UNSGA::Population::Write(const char* filename) const
 {
-/*
-	std::ofstream file(filename);
 
-	for (const auto& individual : elites_)
+	std::ofstream file(filename);
+	auto elites = *sort(individuals_).begin();
+
+	for (const auto& individual : elites)
 	{
-		for (const auto& objective : individual->objectives)
+		for (size_t i = 0; i < scale_ + dimension_ + constraint_; ++i)
 		{
-			file << objective << "\t";
+			file << individual[i] << "\t";
 		}
 		file << std::endl;
 	}
 
 	file.close();
-*/
 }

@@ -12,6 +12,7 @@
 #include <iostream>
 #include <variant>
 #include <exception>
+#include <numeric>
 
 #include "../../../basic/math.h"
 #include "../../optimizor.h"
@@ -34,53 +35,51 @@ public:
 class UNSGA::Population : public Optimizor::Result
 {
 private:
-	class Individual;
+//	class Individual;
 	class Reference;
 	class Reproducor;
-	using Series = std::list<Individual*>;
 
 private:
+	const size_t dimension_, scale_, constraint_;
 	Optimizor::Objective& function_;
-	Series individuals_;
+	using Individual = double*;
+//	Series individuals_;
+
+	std::list<double*> individuals_;
 	std::unique_ptr<Reference> selector_;
 	std::unique_ptr<Reproducor> reproducer_;
 
 private:
-	std::list<Series> sort();
-
-private:
+	std::list<double*> fitness(std::list<double*> population);
+	std::list<std::list<double*>> sort(std::list<double*> population) const;
 	virtual void Write(const char *) const;
 
 public:
-	void Evolve();
+	const Optimizor::Result& evolve(size_t generation);
+
 	Population(Optimizor::Configuration& configuration);
 	~Population();
-};
-
-class UNSGA::Population::Individual
-{
-public:
-	double *decisions, *objectives, *voilations;
-
-public:
-	Individual(size_t scale, size_t dimension, size_t constriant);
-	~Individual();
 };
 
 class UNSGA::Population::Reference
 {
 private:
-	const size_t dimension_;
+	const size_t scale_, dimension_, selection_;
+	double* ideal_, * interception_;
 
 	class Point;
-	std::list<Point*> points_;
+	std::list<std::unique_ptr<Point>> points_;
 
 private:
-	void normalize(Series& elites, Series& cirticals);
+	void attach(const double * individual);
+	void associate(double * inddividual);
+
+	void dispense(size_t needed, std::list<double*>& elites, std::list<double*>& cirticals);
 
 public:
 	Reference(const Optimizor::Configuration& configuration);
-	Series select(std::list<Series> layers);
+	// the operator is the select function
+	std::pair<std::list<double*>, std::list<double*>> operator () (std::list<std::list<double*>> layers);
 };
 
 class UNSGA::Population::Reference::Point
@@ -91,7 +90,7 @@ private:
 
 public:
 	size_t count;
-	std::list<Individual*> associated;
+	std::list<double*> associated;
 
 public:
 	double distance(const double * point) const;
@@ -101,21 +100,20 @@ public:
 class UNSGA::Population::Reproducor
 {
 private:
-	const size_t dimension, scale;
+	const size_t scale_, dimension_;
 	double *uppers_, *lowers_, *integers_;
 	double cross_, mutation_, threshold_;
 
-	std::random_device device_;
 	std::mt19937_64 generator_;
 	std::uniform_real_distribution<double> uniform_;
 
 private:
-	void check(Individual& individual);
-	void cross(std::array<const Individual*, 2> parents, std::array<Individual*, 2> children);
-	void mutate(Individual& individual);
+	void check(double * individual);
+	void cross(std::array<const double*, 2> parents, std::array<double*, 2> children);
+	void mutate(double * individual);
 
 public:
 	Reproducor(const math::Optimizor::Configuration& configuration);
-	Series reproduce(std::pair<Series, Series> population);
+	std::list<double*> operator() (std::pair<std::list<double*>, std::list<double*>> population);
 };
 #endif //!_MATH_OPTIMIZATION_UNSGA_

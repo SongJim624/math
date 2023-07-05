@@ -36,13 +36,21 @@ int main()
 	std::unique_ptr<math::Optimizor::Configuration> config = std::make_unique<math::Optimizor::Configuration>();
 	config->objective = std::make_unique<Objective>();
 
-	(*config)["cross"] = 0.8f;
-	(*config)["mutation"] = 0.8f;
+	(*config)["scale"] = size_t(2);
+	(*config)["dimension"] = size_t(2);
+	(*config)["constraint"] = size_t(0);
+
+	(*config)["upper"] = std::vector<double>{ 1.0, 1.0 };
+	(*config)["lower"] = std::vector<double>{ -1.0, -1.0 };
+	(*config)["integer"] = std::vector<double>{ 0.0, 0.0 };
+
+	(*config)["cross"] = 0.8;
+	(*config)["mutation"] = 0.8;
 	(*config)["maximum"] = size_t(100);
 	(*config)["division"] = size_t(10);
 	(*config)["population"] = size_t(1000);
 
-	std::unique_ptr<math::Optimizor> optimizer = std::make_unique<math::UNSGA>();
+	std::unique_ptr<math::Optimizor> optimizer = std::make_unique<UNSGA>();
 	const auto& results = optimizer->Optimize(*config);
 	results.Write("results.txt");
 	std::cout << "hello" << std::endl;

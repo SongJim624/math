@@ -1,17 +1,17 @@
 #include "../math.h"
 using namespace math;
 
-double * allocate(size_t length)
+double * math::allocate(size_t length)
 {
-    return reinterpret_cast<double*>(std::aligned_alloc(length * sizeof(double), 64));
+    return reinterpret_cast<double*>(std::malloc(length * sizeof(double)));
 }
 
-void free(double * pointer)
+void math::free(double * pointer)
 {
     std::free(pointer);
 }
 
-void copy(size_t length, const double * source, size_t step,  double * denstination, size_t increment)
+void math::copy(size_t length, const double * source, size_t step,  double * denstination, size_t increment)
 {
     for(size_t i = 0; i < length; ++i)
     {
