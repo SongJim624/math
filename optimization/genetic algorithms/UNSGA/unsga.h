@@ -41,7 +41,6 @@ private:
 
 private:
 	const size_t dimension_, scale_, constraint_;
-	Optimizor::Objective& function_;
 	using Individual = double*;
 //	Series individuals_;
 
@@ -50,7 +49,6 @@ private:
 	std::unique_ptr<Reproducor> reproducer_;
 
 private:
-	std::list<double*> fitness(std::list<double*> population);
 	std::list<std::list<double*>> sort(std::list<double*> population) const;
 	virtual void Write(const char *) const;
 
@@ -72,7 +70,7 @@ private:
 
 private:
 	void attach(const double * individual);
-	void associate(double * inddividual);
+	void associate(double * inddividual, double * cost);
 
 	void dispense(size_t needed, std::list<double*>& elites, std::list<double*>& cirticals);
 
@@ -102,6 +100,7 @@ class UNSGA::Population::Reproducor
 private:
 	const size_t scale_, dimension_;
 	double *uppers_, *lowers_, *integers_;
+	math::Optimizor::Objective& function_;
 	double cross_, mutation_, threshold_;
 
 	std::mt19937_64 generator_;
@@ -113,7 +112,7 @@ private:
 	void mutate(double * individual);
 
 public:
-	Reproducor(const math::Optimizor::Configuration& configuration);
+	Reproducor(math::Optimizor::Configuration& configuration);
 	std::list<double*> operator() (std::pair<std::list<double*>, std::list<double*>> population);
 };
 #endif //!_MATH_OPTIMIZATION_UNSGA_

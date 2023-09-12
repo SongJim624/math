@@ -55,7 +55,6 @@ UNSGA::Population::Population(Optimizor::Configuration& configuration) :
     scale_(std::get<size_t>(configuration["scale"])),
     dimension_(std::get<size_t>(configuration["dimension"])),
     constraint_(std::get<size_t>(configuration["contraint"])),
-    function_(*configuration.objective.get()),
     selector_(std::make_unique<Reference>(configuration)),
     reproducer_(std::make_unique<Reproducor>(configuration))
 {
@@ -108,10 +107,10 @@ UNSGA::Population::Population(Optimizor::Configuration& configuration) :
     {
         double* individual = math::allocate(dimension_ + scale_ + constraint_);
         math::copy(scale_, &decisions[0], 1, individual, 1);
+        (*configuration.objective)(individual, individual + scale_, individual + scale_ + dimension_);
+
         individuals_.push_back(individual);
     }
-
-    individuals_ = fitness(individuals_);
 }
 
 UNSGA::Population::~Population()
@@ -121,16 +120,6 @@ UNSGA::Population::~Population()
         std::free(individual);
         individual = nullptr;
     }
-}
-
-std::list<double*> UNSGA::Population::fitness(std::list<double*> population)
-{
-    for (auto individual : population)
-    {
-        function_(individual, individual + scale_, individual + scale_ + dimension_);
-    }
-
-    return population;
 }
 
 std::list<std::list<double*>> UNSGA::Population::sort(std::list<double*> individuals) const
@@ -178,6 +167,20 @@ std::list<std::list<double*>> UNSGA::Population::sort(std::list<double*> individ
         }
     }
 
+   /*
+    for (const auto& result : results)
+    {
+        for (const auto& r : result)
+        {
+            for (size_t i = 0; i < scale_ + dimension_; ++i)
+            {
+                std::cout << r[i] << "\t";
+            }
+            std::cout << std::endl;
+        }
+    }
+   */
+
     return results;
 }
 
@@ -185,7 +188,7 @@ const math::Optimizor::Result& UNSGA::Population::evolve(size_t generation)
 {
     for (size_t i = 0; i < generation; ++i)
     {
-        individuals_ = fitness((*reproducer_)((*selector_)(sort(individuals_))));
+        individuals_ = (*reproducer_)((*selector_)(sort(individuals_)));
     }
 
     return *this;

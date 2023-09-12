@@ -95,16 +95,17 @@ double* ideal(double* point, size_t scale, size_t dimension, const std::list<dou
 
 double* interception(double* values, const double * ideal, size_t scale, size_t dimension, const std::list<double*>& individuals)
 {
+    auto cost = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(dimension), math::free };
     auto matrix = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(dimension * dimension), math::free };
     std::vector<std::pair<double, double*>> nearest(dimension, { double(+INFINITY), nullptr});
 
     for (auto& individual : individuals)
     {
-        math::sub(dimension, individual + scale, ideal, individual + scale);
+        math::sub(dimension, individual + scale, ideal, cost.get());
 
         for (size_t axis = 0;  axis < dimension; ++axis)
         {
-            double distance = ::scale(axis, dimension, individual + scale);
+            double distance = ::scale(axis, dimension, cost.get());
 
             if (distance < nearest[axis].first)
             {
@@ -121,19 +122,14 @@ double* interception(double* values, const double * ideal, size_t scale, size_t 
     }
 
     doolittle(dimension, matrix.get(), values);
-
-    for (auto& individual : individuals)
-    {
-        math::div(dimension, individual + scale, values, individual + scale);
-    }
-
     return values;
 }
 
-void normalize(size_t dimension, double* objectives, const double* ideal, const double* interception)
+double* normalize(size_t dimension, double* objectives, const double* ideal, const double* interception)
 {
     math::sub(dimension, objectives, ideal, objectives);
     math::div(dimension, objectives, interception, objectives);
+    return objectives;
 }
 
 
@@ -178,13 +174,13 @@ UNSGA::Population::Reference::Reference(const Optimizor::Configuration& configur
     }
 }
 
-void UNSGA::Population::Reference::attach(const double* individual)
+void UNSGA::Population::Reference::attach(const double * cost)
 {
     std::pair<double, Point*> nearest {double(+INFINITY), nullptr};
 
     for (const auto& point : points_)
     {
-        double distance = point->distance(individual);
+        double distance = point->distance(cost);
 //        std::cout << distance << std::endl;
         if (distance < nearest.first)
         {
@@ -196,13 +192,13 @@ void UNSGA::Population::Reference::attach(const double* individual)
     nearest.second->count++;
 }
 
-void UNSGA::Population::Reference::associate(double* individual)
+void UNSGA::Population::Reference::associate(double* individual, double * cost)
 {
     std::pair<double, Point*> nearest {+INFINITY, nullptr};
 
     for (const auto& point : points_)
     {
-        double distance = point->distance(individual);
+        double distance = point->distance(cost);
 
         if (distance < nearest.first)
         {
@@ -219,17 +215,19 @@ void UNSGA::Population::Reference::dispense(size_t needed, std::list<double*>& e
     ideal_ = ideal(ideal_, scale_, dimension_, elites);
     interception_ = interception(interception_, ideal_, scale_, dimension_, elites);
 
-    //normalization of elites are finished when solving the ideal point and interception
+    auto cost = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(dimension_), math::free };
+
     for (auto& elite : elites)
     {
-        attach(elite);
+        math::copy(dimension_, elite + scale_, 1, cost.get(), 1);
+        attach(normalize(dimension_, cost.get(), ideal_, interception_));
     }
 
     while(!critical.empty())
     {
         auto individual = *critical.begin();
-        normalize(dimension_, individual + scale_, ideal_, interception_);
-        associate(individual);
+        math::copy(dimension_, individual + scale_, 1, cost.get(), 1);
+        associate(individual, normalize(dimension_, cost.get(), ideal_, interception_));
         critical.pop_front();
     }
 

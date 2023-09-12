@@ -1,7 +1,8 @@
 #include "unsga.h"
 
-UNSGA::Population::Reproducor::Reproducor(const math::Optimizor::Configuration& configuration) :
+UNSGA::Population::Reproducor::Reproducor(math::Optimizor::Configuration& configuration) :
     scale_(std::get<size_t>(configuration["scale"])), dimension_(std::get<size_t>(configuration["dimension"])),
+    function_(*configuration.objective),
     uppers_(math::allocate(scale_)), lowers_(math::allocate(scale_)), integers_(math::allocate(scale_)),
     cross_(std::get<double>(configuration["cross"])), mutation_(std::get<double>(configuration["mutation"])),
     threshold_(0.8), uniform_(std::uniform_real_distribution<double>(0, 1))
@@ -59,9 +60,11 @@ void UNSGA::Population::Reproducor::cross(std::array<const double*, 2> parents, 
 
     math::add(scale_, father, mother, son);
     math::sub(scale_, son, temporary.get(), son);
+    math::scal(scale_, 0.5, son, 1);
 
     math::add(scale_, father, mother, daughter);
-    math::add(scale_, daughter, temporary.get(), son);
+    math::add(scale_, daughter, temporary.get(), daughter);
+    math::scal(scale_, 0.5, daughter, 1);
 }
 
 
@@ -75,7 +78,7 @@ void UNSGA::Population::Reproducor::mutate(double * individual)
         double base = std::min(random, 1 - random);
         base = std::pow(2 * base + (1 - 2 * base) * std::pow(weight, mutation_ + 1), 1.0 / (mutation_ + 1.0));
 
-        individual[i] = random <  0.5 ? base - 1 : 1 - base;
+        individual[i] += random <  0.5 ? base - 1 : 1 - base;
     }
 }
 
@@ -95,23 +98,26 @@ std::list<double*> UNSGA::Population::Reproducor::operator ()(std::pair<std::lis
     auto father = elites.begin();
     auto mother = std::next(father);
 
-    while (!ordinary.empty() && std::next(mother) != elites.end())
+    while (!ordinary.empty())
     {
-        auto son = std::next(ordinary.end(), -1);
-        auto daughter = std::next(son, -1);
+        auto son = ordinary.rbegin();
+        auto daughter = son++;
 
         cross({ *father, *mother }, { *son, *daughter });
         check(*son);
         check(*daughter);
 
-        for (auto& individual : { *father, *mother, *son, *daughter})
+        for (auto& individual : { *son, *daughter })
         {
-            if(uniform_(generator_))
+            if (uniform_(generator_) > threshold_)
             {
                 mutate(individual);
                 check(individual);
             }
         }
+
+        function_(*son, *son + scale_, *son + scale_ + dimension_);
+        function_(*daughter, *daughter + scale_, *daughter + scale_ + dimension_);
 
         temporary.push_back(*son);
         temporary.push_back(*daughter);
@@ -120,11 +126,18 @@ std::list<double*> UNSGA::Population::Reproducor::operator ()(std::pair<std::lis
         ordinary.pop_back();
 
         std::advance(father, 2);
+
+        if (father == elites.end())
+        {
+            break;
+        }
+
         std::advance(mother, 2);
     }
 
     result.splice(result.end(), elites);
     result.splice(result.end(), temporary);
     result.splice(result.end(), ordinary);
+
     return result;
 }
