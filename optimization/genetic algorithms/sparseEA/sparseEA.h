@@ -14,26 +14,32 @@
 #include <exception>
 #include <numeric>
 
-#include "../../../basic/math.h"
-#include "../../optimizor.h"
+#include "../genetic algorithm.h"
 
 /*
- * sparseEA : Zhang, Y., Tian, Y. & Zhang, X. Improved SparseEA for sparse large-scale multi-objective optimization problems. Complex Intell. Syst. 9, 1127–1142 (2023). https://doi.org/10.1007/s40747-021-00553-0
+ * article information :
+ * sparseEA : Zhang, Y., Tian, Y. & Zhang, X.W
+ * Improved SparseEA for sparse large-scale multi-objective optimization problems.
+ * Complex Intell. Syst. 9, 1127–1142 (2023). https://doi.org/10.1007/s40747-021-00553-0
  */
 
-//This is not included in the math namespace
-//it is just an implementation and should be load via a library
-//and instanced by a factory
 #ifndef _MATH_OPTIMIZATION_SPARSEEA_
 #define _MATH_OPTIMIZATION_SPARSEEA_
-class SparseEA : public math::Optimizor
+
+class Population : public GeneticAlgorithm::Population
 {
 private:
-	class Population;
-	std::unique_ptr<Population> population_;
+	std::vector<size_t> importances_;
+};
+
+
+class SparseEA : public GeneticAlgorithm::Optimizor
+{
+public:
+	virtual const math::Optimizor::Result& Optimize(Optimizor::Configuration& configuration);
 
 public:
-	virtual const Optimizor::Result& Optimize(Optimizor::Configuration& configuration);
+	SparseEA();
 };
 
 class SparseEA::Population : public Optimizor::Result

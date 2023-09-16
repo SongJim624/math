@@ -1,90 +1,61 @@
 #include "unsga.h"
 
-int dominate(size_t length, const double* lhs, const double* rhs)
+void generate(size_t scale, double *decisions, double *upper, double *lower, double *integer)
 {
-    std::array<size_t, 3> counts{ 0, 0, 0 };
+    auto temporary = std::unique_ptr<double, decltype(&math::free)>{ math::allocate(scale), math::free };
 
-    auto compare = [](double lhs, double rhs)
-    {
-        return std::abs(lhs - rhs) < 1e-7 ? 1 : (lhs > rhs ? 0 : 2);
-    };
+    math::sub(scale, upper, lower, temporary.get());
+    math::mul(scale, temporary.get(), decisions, decisions);
+    math::add(scale, decisions, &lower[0], decisions);
 
-    for (size_t i = 0; i < length; ++i)
+    for (size_t i = 0; i < scale; ++i)
     {
-        counts[compare(lhs[i], rhs[i])]++;
+        decisions[i] = integer[i] ? std::round(decisions[i]) : decisions[i];
     }
-
-    return (counts[1] == length) ? 0 : ((counts[0] == 0) ? 1 : ((counts[2] == 0) ? -1 : 0));
 }
 
-int dominate(size_t scale, size_t dimension, size_t constraint, const double* lhs, const double* rhs)
+void Population::evolve(size_t generation)
 {
-    int status = dominate(constraint, lhs + scale + dimension, rhs + scale + dimension);
-    return status != 0 ? status : dominate(dimension, lhs + scale, rhs + scale);
+    for (size_t i = 0; i < generation; ++i)
+    {
+        individuals_ = reproducor_->reproduce(selector_->select(std::forward<Series>(individuals_)));
+    }
 }
 
-bool dominate(size_t scale, size_t dimension, size_t constraint, double* individual, std::list<double*>& current, std::list<double*>& lower)
+void Population::write(const char * path)
 {
-    auto member = current.begin();
+	std::ofstream file(path);
+	auto&& elites = std::move(selector_->sort(std::forward<Series>(individuals_)));
 
-    while (member != current.end())
+	for (const auto& individual : *elites.begin())
+	{
+		for (size_t i = 0; i < scale_ + dimension_ + constraint_; ++i)
+		{
+			file << individual[i] << "\t";
+		}
+		file << std::endl;
+	}
+
+	file.close();
+
+    while(!elites.empty())
     {
-        switch (dominate(scale, dimension, constraint, *member, individual))
-        {
-        case 1:
-        {
-            return false;
-        }
-        case -1:
-        {
-            lower.push_back(*member);
-            member = current.erase(member);
-            continue;
-        }
-        case 0:
-        {
-            member++;
-        }
-        }
+        individuals_.splice(individuals_.end(), *elites.begin());
+        elites.pop_front();
     }
+}
 
-    return true;
-};
-
-UNSGA::Population::Population(Optimizor::Configuration& configuration) :
-    scale_(std::get<size_t>(configuration["scale"])),
-    dimension_(std::get<size_t>(configuration["dimension"])),
-    constraint_(std::get<size_t>(configuration["contraint"])),
-    selector_(std::make_unique<Reference>(configuration)),
-    reproducer_(std::make_unique<Reproducor>(configuration))
+Population::Population(math::Optimizor::Configuration& configuration) :
+    selector_(std::make_unique<Reference>(configuration)), reproducor_(std::make_unique<Reproducor>(configuration))
 {
+    size_t scale = std::get<size_t>(configuration["scale"]);
+    size_t dimension = std::get<size_t>(configuration["dimension"]);
+    size_t constraint = std::get<size_t>(configuration["constraint"]);
     size_t population = std::get<size_t>(configuration["population"]);
+
     std::vector<double> upper = std::get<std::vector<double>>(configuration["upper"]);
     std::vector<double> lower = std::get<std::vector<double>>(configuration["lower"]);
     std::vector<double> integer = std::get<std::vector<double>>(configuration["integer"]);
-
-    std::random_device seed;
-    std::mt19937_64 generator(seed());
-    std::uniform_real_distribution<double> uniform(0, 1);
-
-    auto generate = [&uniform, &generator, &upper, &lower, &integer](size_t length, double* decision)
-    {
-        auto temporary = std::unique_ptr<double, decltype(&math::free)>{ math::allocate(length), math::free };
-        
-        for (size_t i = 0; i < length; ++i)
-        {
-            decision[i] = uniform(generator);
-        }
-
-        math::sub(length, &upper[0], &lower[0], temporary.get());
-        math::mul(length, temporary.get(), decision, decision);
-        math::add(length, decision, &lower[0], decision);
-
-        for (size_t i = 0; i < length; ++i)
-        {
-            decision[i] = integer[i] ? std::round(decision[i]) : decision[i];
-        }
-    };
 
     std::vector<std::vector<double>> initials;
 
@@ -96,100 +67,31 @@ UNSGA::Population::Population(Optimizor::Configuration& configuration) :
     {
     }
 
+    std::random_device seed;
+    std::mt19937_64 generator(seed());
+    std::uniform_real_distribution<double> uniform(0, 1);
+
     while(initials.size() != population)
     {
-        std::vector<double> decisions(scale_);
-        generate(dimension_, &decisions[0]);
+        std::vector<double> decisions(scale);
+
+        for(auto& decision : decisions)
+        {
+            decision = uniform(generator);
+        }
+
+        generate(dimension, &decisions[0], &upper[0], &lower[0], &integer[0]);
         initials.push_back(std::move(decisions));
     }
 
     for(const auto& decisions : initials)
     {
-        double* individual = math::allocate(dimension_ + scale_ + constraint_);
-        math::copy(scale_, &decisions[0], 1, individual, 1);
-        (*configuration.objective)(individual, individual + scale_, individual + scale_ + dimension_);
+        population_.push_back(std::unique_ptr<double[], decltype(&math::free)>(math::allocate(scale + dimension + constraint), math::free));
+        auto individual = population_.rbegin()->get();
+
+        math::copy(scale, &decisions[0], 1, individual, 1);
+        (*configuration.objective)(individual, individual + scale, individual + scale + dimension);
 
         individuals_.push_back(individual);
     }
-}
-
-UNSGA::Population::~Population()
-{
-    for (auto& individual : individuals_)
-    {
-        std::free(individual);
-        individual = nullptr;
-    }
-}
-
-std::list<std::list<double*>> UNSGA::Population::sort(std::list<double*> individuals) const
-{
-    std::list<std::list<double*>> results{ {*individuals.begin()} };
-    individuals.pop_front();
-//mutually exclusive dominating and dominated in a layer when comparing all the individuals with a new one
-// improvement of the non dominate sort
-// if an individual is dominated by another which is in the upper layer,
-// it must be dominated by the other individuals in the upper layer
-
-    while (!individuals.empty())
-    {        
-        auto individual = *individuals.begin();
-        individuals.pop_front();
-
-        for (auto layer = results.begin(); layer != results.end(); ++layer)
-        {
-            std::list<double*> lower;
-             bool status = dominate(scale_, dimension_, constraint_, individual, *layer, lower);
-
-            if (status)
-            {
-                layer->push_back(individual);
-
-                if (!lower.empty())
-                {
-                    results.insert(std::next(layer), lower);
-                }
-
-                break;
-            }
-            else
-            {
-                if (std::next(layer) == results.end())
-                {
-                    results.push_back({ individual });
-                    break;
-                }
-                else
-                {
-                    continue;
-                }
-            }
-        }
-    }
-
-   /*
-    for (const auto& result : results)
-    {
-        for (const auto& r : result)
-        {
-            for (size_t i = 0; i < scale_ + dimension_; ++i)
-            {
-                std::cout << r[i] << "\t";
-            }
-            std::cout << std::endl;
-        }
-    }
-   */
-
-    return results;
-}
-
-const math::Optimizor::Result& UNSGA::Population::evolve(size_t generation)
-{
-    for (size_t i = 0; i < generation; ++i)
-    {
-        individuals_ = (*reproducer_)((*selector_)(sort(individuals_)));
-    }
-
-    return *this;
 }

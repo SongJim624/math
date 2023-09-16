@@ -15,7 +15,7 @@ namespace math
 		class Result;
 
 	public:
-		virtual const Result& Optimize(Configuration& configuration) = 0;
+		virtual const Result& optimize(Configuration& configuration) = 0;
 		virtual ~Optimizor() {};
 	};
 
@@ -29,7 +29,7 @@ namespace math
 	class Optimizor::Result
 	{
 	public:
-		virtual void Write(const char* path) const = 0;
+		virtual void write(const char* path) = 0;
 		virtual ~Result() {};
 	};
 

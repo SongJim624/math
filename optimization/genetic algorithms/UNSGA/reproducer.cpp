@@ -1,59 +1,19 @@
 #include "unsga.h"
 
-UNSGA::Population::Reproducor::Reproducor(math::Optimizor::Configuration& configuration) :
-    scale_(std::get<size_t>(configuration["scale"])), dimension_(std::get<size_t>(configuration["dimension"])),
-    function_(*configuration.objective),
-    uppers_(math::allocate(scale_)), lowers_(math::allocate(scale_)), integers_(math::allocate(scale_)),
-    cross_(std::get<double>(configuration["cross"])), mutation_(std::get<double>(configuration["mutation"])),
-    threshold_(0.8), uniform_(std::uniform_real_distribution<double>(0, 1))
-{
-    std::random_device seed;
-    generator_ = std::mt19937_64(seed());
-
-    std::map<std::string, double*> constraints =
-    {
-        {"upper", uppers_},
-        {"lower", lowers_},
-        {"integer", integers_},
-    };
-
-    for (auto& [name, pointer] : constraints)
-    {
-        const auto& value = std::get<std::vector<double>>(configuration[name]);
-        std::copy(value.begin(), value.end(), pointer);
-    }
-}
-
-void UNSGA::Population::Reproducor::check(double * individual)
-{
-	for (size_t i = 0; i < scale_; ++i)
-    {
-		*individual = std::max(std::min(*individual, uppers_[i]), lowers_[i]);
-        *individual = integers_[i] ? std::round(*individual) : *individual;
-
-        individual++;
-	}
-}
-
-void UNSGA::Population::Reproducor::cross(std::array<const double*, 2> parents, std::array<double*, 2> children)
+//  simulated binary crossover
+void Reproducor::cross(const Individual parents[2], Individual children[2])
 {
     auto randoms = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(scale_), math::free };
     auto temporary = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(scale_), math::free };
+    auto father = parents[0], mother = parents[1], son = children[0], daughter = children[1];
 
-    for(size_t i = 0; i < scale_; ++i)
+    for(auto r = randoms.get(); r != randoms.get() + scale_; *r = uniform_(generator_), ++r)
     {
-        randoms[i] = uniform_(generator_);
-        randoms[i] = (randoms[i] < 0.5) ? 2.0 * randoms[i] : 0.5 / (1.0 - randoms[i]);
+        *r = (*r < 0.5) ? 2.0 * *r : 0.5 / (1.0 - *r);
     }
 
     double probability = 1 / (cross_ + 1);
     math::powI(scale_, randoms.get(), 1, &probability, 0, randoms.get(), 1);
-
-    auto& father = parents[0];
-    auto& mother = parents[1];
-
-    auto& son = children[0];
-    auto& daughter = children[1];
 
     math::sub(scale_, father, mother, temporary.get());
     math::mul(scale_, randoms.get(), temporary.get(), temporary.get());
@@ -67,14 +27,13 @@ void UNSGA::Population::Reproducor::cross(std::array<const double*, 2> parents, 
     math::scal(scale_, 0.5, daughter, 1);
 }
 
-
-void UNSGA::Population::Reproducor::mutate(double * individual)
+void Reproducor::mutate(Individual individual)
 {
     for (size_t i = 0; i < scale_; ++i)
     {
         double random = uniform_(generator_);
-        double weight = ((random < 0.5) ? (uppers_[i] - individual[i]) : (individual[i] - lowers_[i])) / (uppers_[i] - lowers_[i]);
-        
+        double weight = ((random < 0.5) ? (upper_[i] - individual[i]) : (individual[i] - lower_[i])) / (upper_[i] - lower_[i]);
+
         double base = std::min(random, 1 - random);
         base = std::pow(2 * base + (1 - 2 * base) * std::pow(weight, mutation_ + 1), 1.0 / (mutation_ + 1.0));
 
@@ -82,62 +41,62 @@ void UNSGA::Population::Reproducor::mutate(double * individual)
     }
 }
 
-std::list<double*> UNSGA::Population::Reproducor::operator ()(std::pair<std::list<double*>, std::list<double*>> population)
+void Reproducor::check(Individual individual)
 {
-    std::list<double*> result, temporary;
+    for(auto value = individual, upper = upper_.get(), lower = lower_.get(), integer = integer_.get();
+        value != individual + scale_; ++value, ++upper, ++lower, ++integer)
+    {
+		*value = std::max(std::min(*value, *upper), *lower);
+        *value = *integer ? std::round(*value) : *value;
+    }
+}
 
-    auto& elites = population.first;
-    auto& ordinary = population.second;
+Series Reproducor::reproduce(std::pair<Series, Series>&& population)
+{
+    auto& [elites, ordinaries] = population;
+    Series offsprings = {};
 
+//  by this way, elites will not be more than ordinaries
     if (elites.size() % 2)
     {
-        ordinary.push_front(*elites.rbegin());
+        ordinaries.push_front(std::move(*elites.rbegin()));
         elites.pop_back();
     }
 
-    auto father = elites.begin();
-    auto mother = std::next(father);
-
-    while (!ordinary.empty())
+    for(auto iter = elites.begin(); iter != elites.end(); iter = std::next(iter, 2))
     {
-        auto son = ordinary.rbegin();
-        auto daughter = son++;
+        Individual parents[2] = { *iter, *std::next(iter) };
+        Individual children[2] = { *ordinaries.rbegin(), *std::next(ordinaries.rbegin()) };
 
-        cross({ *father, *mother }, { *son, *daughter });
-        check(*son);
-        check(*daughter);
+        cross(parents, children);
 
-        for (auto& individual : { *son, *daughter })
+        for (auto& individual : children)
         {
-            if (uniform_(generator_) > threshold_)
-            {
-                mutate(individual);
-                check(individual);
-            }
+            uniform_(generator_) > threshold_ ? mutate(individual) : void();
+            check(individual);
+            (*function_)(individual, individual + scale_, individual + scale_ + dimension_);
         }
 
-        function_(*son, *son + scale_, *son + scale_ + dimension_);
-        function_(*daughter, *daughter + scale_, *daughter + scale_ + dimension_);
-
-        temporary.push_back(*son);
-        temporary.push_back(*daughter);
-
-        ordinary.pop_back();
-        ordinary.pop_back();
-
-        std::advance(father, 2);
-
-        if (father == elites.end())
-        {
-            break;
-        }
-
-        std::advance(mother, 2);
+        offsprings.insert(offsprings.end(), children, children + 1);
+        ordinaries.pop_back();
+        ordinaries.pop_back();
     }
 
-    result.splice(result.end(), elites);
-    result.splice(result.end(), temporary);
-    result.splice(result.end(), ordinary);
+    elites.splice(elites.end(), offsprings);
+    elites.splice(elites.end(), ordinaries);
+    return elites;
+}
 
-    return result;
+Reproducor::Reproducor(math::Optimizor::Configuration& configuration) :
+    scale_(std::get<size_t>(configuration["scale"])), dimension_(std::get<size_t>(configuration["dimension"])),
+    cross_(std::get<double>(configuration["cross"])), mutation_(std::get<double>(configuration["mutation"])), threshold_(0.8),
+    upper_(math::allocate(scale_), math::free), lower_(math::allocate(scale_), math::free), integer_(math::allocate(scale_), math::free),
+    function_(configuration.objective.get()), generator_(std::random_device()()), uniform_(0, 1)
+{
+    for(auto& [name, pointer] :
+        std::map<std::string, double*>{ { "upper", upper_.get() }, { "lower", lower_.get() }, { "integer", integer_.get() } })
+    {
+        const auto& value = std::get<std::vector<double>>(configuration[name]);
+        std::copy(value.begin(), value.end(), pointer);
+    }
 }
