@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "unsga.h"
+#include "sparseea.h"
 
 class Objective : public math::Optimizor::Objective
 {
@@ -50,7 +50,7 @@ int main()
 	(*config)["division"] = size_t(10);
 	(*config)["population"] = size_t(1000);
 
-	std::unique_ptr<math::Optimizor> optimizer = std::make_unique<UNSGA>();
+	std::unique_ptr<math::Optimizor> optimizer = std::make_unique<SparseEA>();
 	auto& results = optimizer->optimize(*config);
 	results.write("results.txt");
 	std::cout << "hello" << std::endl;

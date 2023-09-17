@@ -80,7 +80,9 @@ void math::scal(size_t length, double factor, double* vector, size_t inc)
 
 double math::dot(size_t length, const double* left, size_t linc, const double* right, size_t rinc)
 {
-    auto temporary = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(length), math::free };
+    using Pointer = std::unique_ptr<double[], decltype(&math::free<double>)>;
+
+    auto temporary = Pointer(math::allocate<double>(length), math::free<double>);
     mulI(length, left, linc, right, rinc, temporary.get(), 1);
     return std::accumulate(temporary.get(), temporary.get() + length, 0.0);
 }

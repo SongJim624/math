@@ -15,7 +15,7 @@ namespace math
 		class Result;
 
 	public:
-		virtual const Result& optimize(Configuration& configuration) = 0;
+		virtual Result& optimize(Configuration& configuration) = 0;
 		virtual ~Optimizor() {};
 	};
 

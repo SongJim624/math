@@ -25,7 +25,7 @@ void Population::evolve(size_t generation)
 void Population::write(const char * path)
 {
 	std::ofstream file(path);
-	auto&& elites = std::move(selector_->sort(std::forward<Series>(individuals_)));
+	auto elites = selector_->sort(std::forward<Series>(individuals_));
 
 	for (const auto& individual : *elites.begin())
 	{
@@ -38,19 +38,21 @@ void Population::write(const char * path)
 
 	file.close();
 
+/*
     while(!elites.empty())
     {
         individuals_.splice(individuals_.end(), *elites.begin());
         elites.pop_front();
     }
+*/
 }
 
 Population::Population(math::Optimizor::Configuration& configuration) :
+    scale_(std::get<size_t>(configuration["scale"])), 
+    dimension_(std::get<size_t>(configuration["dimension"])), 
+    constraint_(std::get<size_t>(configuration["constraint"])),
     selector_(std::make_unique<Reference>(configuration)), reproducor_(std::make_unique<Reproducor>(configuration))
 {
-    size_t scale = std::get<size_t>(configuration["scale"]);
-    size_t dimension = std::get<size_t>(configuration["dimension"]);
-    size_t constraint = std::get<size_t>(configuration["constraint"]);
     size_t population = std::get<size_t>(configuration["population"]);
 
     std::vector<double> upper = std::get<std::vector<double>>(configuration["upper"]);
@@ -73,24 +75,24 @@ Population::Population(math::Optimizor::Configuration& configuration) :
 
     while(initials.size() != population)
     {
-        std::vector<double> decisions(scale);
+        std::vector<double> decisions(scale_);
 
         for(auto& decision : decisions)
         {
             decision = uniform(generator);
         }
 
-        generate(dimension, &decisions[0], &upper[0], &lower[0], &integer[0]);
+        generate(dimension_, &decisions[0], &upper[0], &lower[0], &integer[0]);
         initials.push_back(std::move(decisions));
     }
 
     for(const auto& decisions : initials)
     {
-        population_.push_back(std::unique_ptr<double[], decltype(&math::free)>(math::allocate(scale + dimension + constraint), math::free));
+        population_.push_back(std::unique_ptr<double[], decltype(&math::free)>(math::allocate(scale_ + dimension_ + constraint_), math::free));
         auto individual = population_.rbegin()->get();
 
-        math::copy(scale, &decisions[0], 1, individual, 1);
-        (*configuration.objective)(individual, individual + scale, individual + scale + dimension);
+        math::copy(scale_, &decisions[0], 1, individual, 1);
+        (*configuration.objective)(individual, individual + scale_, individual + scale_ + dimension_);
 
         individuals_.push_back(individual);
     }

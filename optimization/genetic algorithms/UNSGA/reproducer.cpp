@@ -63,7 +63,7 @@ Series Reproducor::reproduce(std::pair<Series, Series>&& population)
         elites.pop_back();
     }
 
-    for(auto iter = elites.begin(); iter != elites.end(); iter = std::next(iter, 2))
+    for(auto iter = elites.begin(); iter != elites.end() && !ordinaries.empty(); iter = std::next(iter, 2))
     {
         Individual parents[2] = { *iter, *std::next(iter) };
         Individual children[2] = { *ordinaries.rbegin(), *std::next(ordinaries.rbegin()) };
@@ -77,7 +77,7 @@ Series Reproducor::reproduce(std::pair<Series, Series>&& population)
             (*function_)(individual, individual + scale_, individual + scale_ + dimension_);
         }
 
-        offsprings.insert(offsprings.end(), children, children + 1);
+        offsprings.insert(offsprings.end(), children, children + 2);
         ordinaries.pop_back();
         ordinaries.pop_back();
     }

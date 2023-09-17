@@ -10,10 +10,28 @@
 #define _MATH_BASIC_ARTHEMIC_
 namespace math
 {
+    template<typename T>
+    T* allocate(size_t length)
+    {
+        return reinterpret_cast<T*>(std::malloc(length * sizeof(T)));
+    }
 
-    double* allocate(size_t length);
-    void free(double* vector);
-    void copy(size_t length, const double* sources, size_t step, double*, size_t increment);
+    template<typename T>
+    void free(T* pointer)
+    {
+        std::free(pointer);
+    }
+
+    template<typename T>
+    void copy(size_t length, const T *source, size_t step, T *destination, size_t increment)
+    {
+        for (size_t i = 0; i < length; ++i)
+        {
+            *destination = *source;
+            source += step;
+            destination += increment;
+        }
+    }
 
     void add(size_t length, const double* left, const double* right, double* results);
     void sub(size_t length, const double* left, const double* right, double* results);

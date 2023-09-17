@@ -20,13 +20,10 @@
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_
 #define _MATH_OPTIMIZATION_UNSGA_
-//	each variation may have their own implementation of individual and populations
-//	since the individual needs no specific design in this implementation
-//	the generic individual defined in the GenticAlgorithm namespace is used directly
-using Individual = GeneticAlgorithm::Individual;
-using Series = GeneticAlgorithm::Series;
+using Individual = double *;
+using Series = GeneticAlgorithm::Series<Individual>;
 
-class Reference : public GeneticAlgorithm::Selector
+class Reference : public GeneticAlgorithm::Selector<Individual>
 {
 private:
 	size_t dimension_, scale_, constraint_, selection_;
@@ -47,7 +44,7 @@ public:
 	virtual ~Reference() {}
 };
 
-class Reproducor : public GeneticAlgorithm::Reproducor
+class Reproducor : public GeneticAlgorithm::Reproducor<Individual>
 {
 private:
 	size_t scale_, dimension_;
@@ -75,8 +72,8 @@ public:
 class Population : public GeneticAlgorithm::Population, public math::Optimizor::Result
 {
 private:
-	std::unique_ptr<GeneticAlgorithm::Selector> selector_;
-	std::unique_ptr<GeneticAlgorithm::Reproducor> reproducor_;
+	std::unique_ptr<GeneticAlgorithm::Selector<Individual>> selector_;
+	std::unique_ptr<GeneticAlgorithm::Reproducor<Individual>> reproducor_;
 
 private:
 	size_t scale_, dimension_, constraint_;
@@ -97,7 +94,7 @@ private:
 	std::unique_ptr<GeneticAlgorithm::Population> population_;
 
 public:
-	virtual const Optimizor::Result& optimize(math::Optimizor::Configuration& configuration)
+	virtual Optimizor::Result& optimize(math::Optimizor::Configuration& configuration)
 	{
 		population_ = std::make_unique<Population>(configuration);
 		population_->evolve(std::get<size_t>(configuration["maximum"]));

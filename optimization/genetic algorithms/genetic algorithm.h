@@ -8,17 +8,21 @@
 #define _MATH_OPTIMIZATION_GENETIC_ALGORITHM_
 namespace GeneticAlgorithm
 {
-    using Individual = double *;
+//    using Individual = double *;
+//    using Series = std::list<Individual>;
+    template<typename Individual>
     using Series = std::list<Individual>;
 
+    template<typename Individual>
     class Selector
     {
     public:
-        virtual std::list<Series> sort(Series&& population) = 0;
-        virtual std::pair<Series, Series> select(Series&& population) = 0;
+        virtual std::list<Series<Individual>> sort(Series<Individual>&& population) const = 0;
+        virtual std::pair<Series<Individual>, Series<Individual>> select(Series<Individual>&& population) = 0;
         virtual ~Selector() {}
     };
 
+    template<typename Individual>
     class Reproducor
     {
     protected:
@@ -27,7 +31,7 @@ namespace GeneticAlgorithm
         virtual void check(Individual individual) = 0;
 
     public:
-        virtual Series reproduce(std::pair<Series, Series>&& population) = 0;
+        virtual Series<Individual> reproduce(std::pair<Series<Individual>, Series<Individual>>&& population) = 0;
         virtual ~Reproducor() {}
     };
 
@@ -41,7 +45,7 @@ namespace GeneticAlgorithm
     class Optimizor : public math::Optimizor
     {
     public:
-        virtual const Optimizor::Result& optimize(math::Optimizor::Configuration& configuration) = 0;
+        virtual Optimizor::Result& optimize(math::Optimizor::Configuration& configuration) = 0;
         virtual ~Optimizor() {}
     };
 }
