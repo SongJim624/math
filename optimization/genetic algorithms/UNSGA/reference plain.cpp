@@ -94,7 +94,7 @@ using Association = std::map<double*, std::pair<size_t, std::list<Individual>>>;
 
 double dot(size_t length, const double* left, const double* right)
 {
-    auto temporary = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(length), math::free };
+    auto temporary = create(length);
     math::mul(length, left, right, temporary.get());
 
     return std::accumulate(temporary.get(), temporary.get() + length, 0);
@@ -102,7 +102,7 @@ double dot(size_t length, const double* left, const double* right)
 
 void doolittle(size_t dimension, double* matrix, double* vector)
 {
-    auto temporary = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(dimension * dimension), math::free };
+    auto temporary =create(dimension * dimension);
 
     size_t row = dimension;
     size_t column = dimension;
@@ -170,7 +170,7 @@ void doolittle(size_t dimension, double* matrix, double* vector)
 //  the scalar function, asf function in the article
 double scale(size_t position, size_t dimension, const double * objective)
 {
-    auto weights = std::unique_ptr<double[], decltype(&math::free)>{math::allocate(dimension), math::free};
+    auto weights = create(dimension);
     weights[position] = 1;
 
     math::div(dimension, objective, weights.get(), weights.get());
@@ -180,7 +180,7 @@ double scale(size_t position, size_t dimension, const double * objective)
 //  compute the perpendicular distance between the objective of an individual and the reference point
 double distance(size_t length, const double * point, const double * objective)
 {
-    auto temporary = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(length), math::free };
+    auto temporary =create(length);
     math::copy(length, point, 1, temporary.get(), 1);
 
     double fraction = -math::dot(length, point, 1, objective, 1) / math::dot(length, point, 1, point, 1);
@@ -205,8 +205,8 @@ double* ideal(double* point, size_t scale, size_t dimension, const Series& indiv
 
 double* interception(double* values, const double * ideal, size_t scale, size_t dimension, const Series& individuals)
 {
-    auto cost = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(dimension), math::free };
-    auto matrix = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(dimension * dimension), math::free };
+    auto cost = create(dimension);
+    auto matrix = create(dimension);
     
     std::vector<std::pair<double, double*>> nearest(dimension, { double(+INFINITY), nullptr});
 
@@ -286,7 +286,7 @@ void Reference::dispense(size_t needed, Series& elites, Series& criticals)
     ideal(ideal_.get(), scale_, dimension_, elites);
     interception(interception_.get(), ideal_.get(), scale_, dimension_, elites);
 
-    auto cost = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(dimension_), math::free };
+    auto cost = create(dimension_);
 
     for (auto& elite : elites)
     {
@@ -393,13 +393,13 @@ Reference::Reference(const math::Optimizor::Configuration& configuration) :
     scale_(std::get<size_t>(configuration["scale"])),
     dimension_(std::get<size_t>(configuration["dimension"])),
     selection_(std::get<size_t>(configuration["population"]) / 2),
-    ideal_(math::allocate(dimension_), math::free), interception_(math::allocate(dimension_), math::free)
+    ideal_(create(dimension_)), interception_(create(dimension_))
 {
     size_t division = std::get<size_t>(configuration["division"]);
 
     for (const auto& point : permutation(dimension_, division))
     {
-        points_.push_back(std::unique_ptr<double[], decltype(&math::free)>(math::allocate(dimension_), math::free));
+        points_.push_back(create(dimension_));
         auto pointer = points_.rbegin()->get();
 
         std::copy(point.begin(), point.end(), pointer);
@@ -408,96 +408,3 @@ Reference::Reference(const math::Optimizor::Configuration& configuration) :
         associations_.insert(associations_.end(), { pointer, { 0, {} }});
     }
 }
-
-/*
-double UNSGA::Population::Reference::Point::distance(const double * point) const
-{
-    auto temporary = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(dimension_), math::free };
-    math::copy(dimension_, location_, 1, temporary.get(), 1);
-
-    double fraction = -math::dot(dimension_, location_, 1, point, 1) / math::dot(dimension_, location_, 1, location_, 1);
-    math::xpby(dimension_, point, 1, fraction, temporary.get(), 1);
-    return std::sqrt(math::dot(dimension_, temporary.get(), 1, temporary.get(), 1));
-}
-*/
-
-
-/*
-bool dominate(size_t scale, size_t dimension, size_t constraint, Individual individual, Series& current, std::list<Individual>& lower)
-{
-    auto member = current.begin();
-
-    while (member != current.end())
-    {
-        switch (dominate(scale, dimension, constraint, *member, individual))
-        {
-        case 1:
-        {
-            return false;
-        }
-        case -1:
-        {
-            lower.push_back(*member);
-            member = current.erase(member);
-            continue;
-        }
-        case 0:
-        {
-            member++;
-        }
-        }
-    }
-
-    return true;
-};
-
-std::list<Series> UNSGA::Population::sort(Series individuals) const
-{
-//  initialize the layer, move an individual from population to the layer
-    std::list<Series> results{ { *individuals.begin() } };
-    individuals.pop_front();
-
-//  mutually exclusive dominating and dominated in a layer when comparing all the individuals with a new one
-//  improvement of the non dominate sort
-//  if an individual is dominated by another which is in the upper layer,
-//  it must be dominated by the other individuals in the upper layer
-
-    while (!individuals.empty())
-    {
-        auto individual = *individuals.begin();
-        individuals.pop_front();
-
-        for (auto layer = results.begin(); layer != results.end(); ++layer)
-        {
-            std::list<double*> lower;
-             bool status = dominate(scale_, dimension_, constraint_, individual, *layer, lower);
-
-            if (status)
-            {
-                layer->push_back(individual);
-
-                if (!lower.empty())
-                {
-                    results.insert(std::next(layer), lower);
-                }
-
-                break;
-            }
-            else
-            {
-                if (std::next(layer) == results.end())
-                {
-                    results.push_back({ individual });
-                    break;
-                }
-                else
-                {
-                    continue;
-                }
-            }
-        }
-    }
-
-    return results;
-}
-*/

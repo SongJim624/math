@@ -2,7 +2,7 @@
 
 void generate(size_t scale, double *decisions, double *upper, double *lower, double *integer)
 {
-    auto temporary = std::unique_ptr<double, decltype(&math::free)>{ math::allocate(scale), math::free };
+    auto temporary = create(scale);
 
     math::sub(scale, upper, lower, temporary.get());
     math::mul(scale, temporary.get(), decisions, decisions);
@@ -12,6 +12,11 @@ void generate(size_t scale, double *decisions, double *upper, double *lower, dou
     {
         decisions[i] = integer[i] ? std::round(decisions[i]) : decisions[i];
     }
+}
+
+Pointer create(size_t length)
+{
+    return Pointer(math::allocate<double>(length), math::free<double>);
 }
 
 void Population::evolve(size_t generation)
@@ -88,7 +93,7 @@ Population::Population(math::Optimizor::Configuration& configuration) :
 
     for(const auto& decisions : initials)
     {
-        population_.push_back(std::unique_ptr<double[], decltype(&math::free)>(math::allocate(scale_ + dimension_ + constraint_), math::free));
+        population_.push_back(create(scale_ + dimension_ + constraint_));
         auto individual = population_.rbegin()->get();
 
         math::copy(scale_, &decisions[0], 1, individual, 1);

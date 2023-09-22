@@ -3,8 +3,8 @@
 //  simulated binary crossover
 void Reproducor::cross(const Individual parents[2], Individual children[2])
 {
-    auto randoms = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(scale_), math::free };
-    auto temporary = std::unique_ptr<double[], decltype(&math::free)>{ math::allocate(scale_), math::free };
+    auto randoms = create(scale_);
+    auto temporary = create(scale_);
     auto father = parents[0], mother = parents[1], son = children[0], daughter = children[1];
 
     for(auto r = randoms.get(); r != randoms.get() + scale_; *r = uniform_(generator_), ++r)
@@ -90,7 +90,7 @@ Series Reproducor::reproduce(std::pair<Series, Series>&& population)
 Reproducor::Reproducor(math::Optimizor::Configuration& configuration) :
     scale_(std::get<size_t>(configuration["scale"])), dimension_(std::get<size_t>(configuration["dimension"])),
     cross_(std::get<double>(configuration["cross"])), mutation_(std::get<double>(configuration["mutation"])), threshold_(0.8),
-    upper_(math::allocate(scale_), math::free), lower_(math::allocate(scale_), math::free), integer_(math::allocate(scale_), math::free),
+    upper_(create(scale_)), lower_(create(scale_)), integer_(create(scale_)),
     function_(configuration.objective.get()), generator_(std::random_device()()), uniform_(0, 1)
 {
     for(auto& [name, pointer] :

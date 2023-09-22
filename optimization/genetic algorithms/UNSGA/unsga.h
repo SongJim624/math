@@ -22,15 +22,17 @@
 #define _MATH_OPTIMIZATION_UNSGA_
 using Individual = double *;
 using Series = GeneticAlgorithm::Series<Individual>;
+using Pointer = std::unique_ptr<double[], decltype(&math::free<double>)>;
+Pointer create(size_t length);
 
 class Reference : public GeneticAlgorithm::Selector<Individual>
 {
 private:
 	size_t dimension_, scale_, constraint_, selection_;
-	std::unique_ptr<double[], decltype(&math::free)> ideal_, interception_;
+	Pointer ideal_, interception_;
 
 //	simplified reference plain
-	std::list<std::unique_ptr<double[], decltype(&math::free)>> points_;
+	std::list<Pointer> points_;
 	std::map<double*, std::pair<size_t, std::list<Individual>>> associations_;
 
 private:
@@ -49,7 +51,7 @@ class Reproducor : public GeneticAlgorithm::Reproducor<Individual>
 private:
 	size_t scale_, dimension_;
 	double cross_, mutation_, threshold_;
-	std::unique_ptr<double[], decltype(&math::free)> upper_, lower_, integer_;
+	Pointer upper_, lower_, integer_;
 	math::Optimizor::Objective *function_;
 
 private:
@@ -77,7 +79,7 @@ private:
 
 private:
 	size_t scale_, dimension_, constraint_;
-	std::list<std::unique_ptr<double[], decltype(&math::free)>> population_;
+	std::list<Pointer> population_;
 	std::list<double*> individuals_;
 
 private:
