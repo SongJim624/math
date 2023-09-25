@@ -90,7 +90,7 @@ std::list<Series> Reference::sort(Series&& population) const
 /**************************************************************************
  *  elite reserve selection
  ***************************************************************/
-using Association = std::map<double*, std::pair<size_t, std::list<Individual>>>;
+using Association = std::list<std::tuple<double*, size_t, std::list<Individual>>>;
 
 double dot(size_t length, const double* left, const double* right)
 {
@@ -205,8 +205,7 @@ double* ideal(double* point, size_t scale, size_t dimension, const Series& indiv
 
 double* interception(double* values, const double * ideal, size_t scale, size_t dimension, const Series& individuals)
 {
-    auto cost = create(dimension);
-    auto matrix = create(dimension);
+    auto cost = create(dimension), max = create(dimension),  matrix = create(dimension * dimension);
     
     std::vector<std::pair<double, double*>> nearest(dimension, { double(+INFINITY), nullptr});
 
@@ -216,8 +215,9 @@ double* interception(double* values, const double * ideal, size_t scale, size_t 
 
         for (size_t axis = 0;  axis < dimension; ++axis)
         {
-            double distance = ::scale(axis, dimension, cost.get());
+            max[axis] = std::max(cost[axis], max[axis]);
 
+            double distance = ::scale(axis, dimension, cost.get());
             if (distance < nearest[axis].first)
             {
                 nearest[axis].first = distance;
@@ -233,6 +233,12 @@ double* interception(double* values, const double * ideal, size_t scale, size_t 
     }
 
     doolittle(dimension, matrix.get(), values);
+
+    for (auto value = values; value != values + dimension; ++value)
+    {
+        *value = std::isnan(*values) ? max[value - values] : *value;
+    }
+
     return values;
 }
 
@@ -246,39 +252,28 @@ double* normalize(size_t dimension, double* objectives, const double* ideal, con
 //  attach the individual in the elite set to the reference plain
 void attach(size_t dimension, Individual individual, const double *cost, Association &associations)
 {
-    std::pair<double, size_t*> nearest = { +INFINITY, nullptr };
-
-    for(auto& [point, association] : associations)
-    {
-        double distance = ::distance(dimension, point, cost);
-
-        if (distance < nearest.first)
+    auto compare = [dimension, individual, cost](
+        const std::tuple<double*, size_t, std::list<Individual>>& lhs,
+        const std::tuple<double*, size_t, std::list<Individual>>& rhs)
         {
-            nearest.first = distance;
-            nearest.second = &association.first;
-        }
-    }
-
-    (*nearest.second) += 1;
+            return distance(dimension, std::get<0>(lhs), cost) < distance(dimension, std::get<0>(rhs), cost);
+        };
+    associations.sort(compare);
+    std::get<1>(*associations.begin()) += 1;
 }
 
 //  attach the individual in the critical set to the reference plain
 void associate(size_t dimension, Individual individual, const double *cost, Association &associations)
 {
-    std::pair<double, std::list<Individual>*> nearest = { +INFINITY, nullptr };
-
-    for(auto& [point, association] : associations)
-    {
-        double distance = ::distance(dimension, point, cost);
-
-        if (distance < nearest.first)
+    auto compare = [dimension, individual, cost](
+        const std::tuple<double*, size_t, std::list<Individual>> &lhs,
+        const std::tuple<double*, size_t, std::list<Individual>>& rhs)
         {
-            nearest.first = distance;
-            nearest.second = &association.second;
-        }
-    }
+            return distance(dimension, std::get<0>(lhs), cost) < distance(dimension, std::get<0>(rhs), cost);
+        };
 
-    nearest.second->push_back(individual);
+    associations.sort(compare);
+    std::get<2>(*associations.begin()).push_back(individual);
 }
 
 void Reference::dispense(size_t needed, Series& elites, Series& criticals)
@@ -307,11 +302,11 @@ void Reference::dispense(size_t needed, Series& elites, Series& criticals)
 
             for(auto iter = associations.begin(); iter != associations.end(); ++iter)
             {
-                if(iter->second.second.empty()) { continue; }
+                if(std::get<2>(*iter).empty()) { continue; }
 
-                if(min->second.second.empty()) { min = iter; continue; }
+                if(std::get<2>(*min).empty()) { min = iter; continue; }
 
-                if(iter->second.first < min->second.first) { min = iter; continue; }
+                if(std::get<1>(*iter) < std::get<1>(*min)) { min = iter; continue; }
             }
 
             return min;
@@ -319,7 +314,7 @@ void Reference::dispense(size_t needed, Series& elites, Series& criticals)
 
     while (needed-- != 0)
     {
-        auto& [count, associated] = sort(associations_)->second;
+        auto& [point, count, associated] = *sort(associations_);
 
         elites.push_back(*associated.begin());
         associated.pop_front();
@@ -327,10 +322,10 @@ void Reference::dispense(size_t needed, Series& elites, Series& criticals)
         count++;
     }
 
-    for (auto& [point, association] : associations_)
+    for (auto& [point, count, associated] : associations_)
     {
-        association.first = 0;
-        criticals.splice(criticals.end(), association.second);
+        count = 0;
+        criticals.splice(criticals.end(), associated);
     }
 }
 
@@ -347,8 +342,11 @@ std::pair<Series, Series> Reference::select(Series&& population)
         layers.pop_front();
     }
 
-//  size judge contained in the dispense function
-    if(selection_ > elite.size() )
+    if (elite.size() > selection_)
+    {
+        ordinary.splice(ordinary.end(), elite, std::next(elite.begin(), selection_), elite.end());
+    }
+    else if(selection_ > elite.size())
     {
         dispense(selection_ - elite.size(), elite, *layers.begin());
     }
@@ -392,6 +390,7 @@ std::list<std::list<double>> permutation(size_t dimension, size_t division)
 Reference::Reference(const math::Optimizor::Configuration& configuration) :
     scale_(std::get<size_t>(configuration["scale"])),
     dimension_(std::get<size_t>(configuration["dimension"])),
+    constraint_(std::get<size_t>(configuration["constraint"])),
     selection_(std::get<size_t>(configuration["population"]) / 2),
     ideal_(create(dimension_)), interception_(create(dimension_))
 {
@@ -405,6 +404,6 @@ Reference::Reference(const math::Optimizor::Configuration& configuration) :
         std::copy(point.begin(), point.end(), pointer);
         math::scal(dimension_, 1.0 / division, pointer, 1);
 
-        associations_.insert(associations_.end(), { pointer, { 0, {} }});
+        associations_.push_back({ pointer,  0, {} });
     }
 }

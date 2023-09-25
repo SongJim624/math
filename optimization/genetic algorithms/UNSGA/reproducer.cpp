@@ -25,6 +25,9 @@ void Reproducor::cross(const Individual parents[2], Individual children[2])
     math::add(scale_, father, mother, daughter);
     math::add(scale_, daughter, temporary.get(), daughter);
     math::scal(scale_, 0.5, daughter, 1);
+
+    check(son);
+    check(daughter);
 }
 
 void Reproducor::mutate(Individual individual)
@@ -39,6 +42,8 @@ void Reproducor::mutate(Individual individual)
 
         individual[i] += random <  0.5 ? base - 1 : 1 - base;
     }
+
+    check(individual);
 }
 
 void Reproducor::check(Individual individual)
@@ -73,7 +78,6 @@ Series Reproducor::reproduce(std::pair<Series, Series>&& population)
         for (auto& individual : children)
         {
             uniform_(generator_) > threshold_ ? mutate(individual) : void();
-            check(individual);
             (*function_)(individual, individual + scale_, individual + scale_ + dimension_);
         }
 

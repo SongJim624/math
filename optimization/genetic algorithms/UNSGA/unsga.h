@@ -14,6 +14,7 @@
 #include <exception>
 #include <numeric>
 #include <utility>
+#include <ranges>
 
 #include "../../../basic/math.h"
 #include "../genetic algorithm.h"
@@ -33,7 +34,9 @@ private:
 
 //	simplified reference plain
 	std::list<Pointer> points_;
-	std::map<double*, std::pair<size_t, std::list<Individual>>> associations_;
+	std::list<std::tuple<double*, size_t, std::list<Individual>>> associations_;
+
+//	std::map<double*, std::pair<size_t, std::list<Individual>>> associations_;
 
 private:
 	void dispense(size_t needed, Series& elites, Series& cirticals);

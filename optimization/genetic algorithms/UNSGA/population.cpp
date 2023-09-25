@@ -23,6 +23,7 @@ void Population::evolve(size_t generation)
 {
     for (size_t i = 0; i < generation; ++i)
     {
+        std::cout << "executing the " << i << " th generation" << std::endl;
         individuals_ = reproducor_->reproduce(selector_->select(std::forward<Series>(individuals_)));
     }
 }
@@ -33,6 +34,7 @@ void Population::write(const char * path)
 	auto elites = selector_->sort(std::forward<Series>(individuals_));
 
 	for (const auto& individual : *elites.begin())
+//	for (const auto& individual : individuals_)
 	{
 		for (size_t i = 0; i < scale_ + dimension_ + constraint_; ++i)
 		{
