@@ -37,6 +37,7 @@ Pointer<T> create(size_t length)
 	return Pointer<T>(math::allocate<T>(length), math::free<T>);
 }
 
+//	implemented in sparseea.cpp
 void evaluation(size_t scale, size_t dimension, math::Optimizor::Objective& function, Individual& individual);
 
 class Reference : public GeneticAlgorithm::Selector<Individual>

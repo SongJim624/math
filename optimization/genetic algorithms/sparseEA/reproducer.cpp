@@ -41,8 +41,11 @@ void cross(double exponent, size_t scale, double *randoms, double* parents[2], d
 }
 
 //  cross over function for the masks
-void cross(double exponent, size_t scale, double* randoms, size_t* parents[2], size_t* children[2])
+void cross(double exponent, size_t scale, double* randoms, const std::map<size_t, std::list<size_t>>& importances, size_t* parents[2], size_t* children[2])
 {
+
+
+
 
 }
 

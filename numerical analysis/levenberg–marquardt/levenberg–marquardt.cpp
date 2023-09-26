@@ -1,10 +1,10 @@
-#include "levenberg–marquardt.h"
+#include "levenberg-marquardt.h"
 
-int Solve(float * left, int scale, float * right, int column)
+int solve(double * left, int scalem double * rightm int column)
 {
     int status = 0;
     int ipiv[scale];
-    sgesv(&scale, &column, left, &scale, ipiv, right, &scale, &status);
+    dgesv(&scale, &column, left, &scale, ipiv, right, &scale, &status);
 
     delete[] ipiv;
     ipiv = nullptr;
