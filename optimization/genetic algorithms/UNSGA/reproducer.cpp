@@ -59,19 +59,21 @@ void Reproducor::check(Individual individual)
 Series Reproducor::reproduce(std::pair<Series, Series>&& population)
 {
     auto& [elites, ordinaries] = population;
+
     Series offsprings = {};
 
 //  by this way, elites will not be more than ordinaries
     if (elites.size() % 2)
     {
-        ordinaries.push_front(std::move(*elites.rbegin()));
+        ordinaries.push_front(*elites.rbegin());
         elites.pop_back();
     }
 
+    ordinaries.reverse();
     for(auto iter = elites.begin(); iter != elites.end() && !ordinaries.empty(); iter = std::next(iter, 2))
     {
         Individual parents[2] = { *iter, *std::next(iter) };
-        Individual children[2] = { *ordinaries.rbegin(), *std::next(ordinaries.rbegin()) };
+        Individual children[2] = { *ordinaries.begin(), *std::next(ordinaries.begin()) };
 
         cross(parents, children);
 
@@ -81,9 +83,7 @@ Series Reproducor::reproduce(std::pair<Series, Series>&& population)
             (*function_)(individual, individual + scale_, individual + scale_ + dimension_);
         }
 
-        offsprings.insert(offsprings.end(), children, children + 2);
-        ordinaries.pop_back();
-        ordinaries.pop_back();
+        offsprings.splice(offsprings.end(), ordinaries, ordinaries.begin(), std::next(ordinaries.begin(), 2));
     }
 
     elites.splice(elites.end(), offsprings);

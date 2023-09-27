@@ -45,6 +45,8 @@ std::pair<bool, std::list<Individual>> sort(size_t scale, size_t dimension, size
 
 std::list<Series> sort(size_t scale, size_t dimension, size_t constraint, const Series& individuals)
 {
+    std::cout << "total size before sort: " << individuals.size() << std::endl;
+
 //  initialize the layer, move an individual from population to the layer
     auto individual = individuals.begin();
     std::list<Series> results = { { *individual } };
@@ -59,25 +61,58 @@ std::list<Series> sort(size_t scale, size_t dimension, size_t constraint, const 
         //  lower : individuals dominated by the individual and moved out from the current layer
             auto [status, lower] = sort(scale, dimension, constraint, *individual, *layer);
 
+            if (status)
+            {
+                layer->push_back(*individual);
+                lower.empty() ? layer : results.insert(std::next(layer), lower);
+                break;
+            }
+            else
+            {
+                if (std::next(layer) == results.end())
+                {
+                    results.push_back({ *individual });
+                    lower.empty() ? layer : results.insert(results.end(), lower);
+                    break;
+                }
+                else
+                {
+                    if (!lower.empty())
+                    {
+                        layer->insert(layer->end(), lower.begin(), lower.end());
+                        std::cout << "error : individual is dominated but it dominates individuals" << std::endl;
+                    }
+
+                    continue;
+                }
+            }
+
         //  if the individual is dominated by a member in the current layer
         //  and there are still further layers, continue the bubble sorting loop
-            if(!status && (std::next(layer) != results.end())) { continue; }
+//            if((!status) && (std::next(layer) != results.end())) { continue; }
 
         //  if the indiviudual is not dominated by any member in the current layer
         //  add it to the current layer, or do nothing
-            status ? layer->push_back(*individual) : void();
+//            status ? layer->push_back(*individual) : void();
 
         //  if the individual is dominated by a member in the current layer and there is no further layer
         //  create a layer at the end of results and store the individual in it
         //  if the individual is not dominated by any member in the current layer and dominateds some inviduals
         //  create a new lower layer to store the individuals, which still maintains the dominating relationship
-            !status ? results.insert(results.end(), { *individual }) : lower.empty() ? layer : results.insert(std::next(layer), lower);
+//            (!status) ? results.insert(results.end(), { *individual }) : lower.empty() ? layer : results.insert(std::next(layer), lower);
 
         //  exit the buble sorting loop
-            break;
+//            break;
         }
     }
 
+    size_t size = 0;
+    for (const auto& layer : results)
+    {
+        size += layer.size();
+    }
+        
+    std::cout << "total size after sort: " << size << std::endl;
     return results;
 }
 
@@ -283,7 +318,7 @@ void Reference::dispense(size_t needed, Series& elites, Series& criticals)
 
     auto cost = create(dimension_);
 
-    for (auto& elite : elites)
+    for (const auto& elite : elites)
     {
         math::copy(dimension_, elite + scale_, 1, cost.get(), 1);
         attach(dimension_, elite, normalize(dimension_, cost.get(), ideal_.get(), interception_.get()), associations_);
@@ -332,11 +367,12 @@ void Reference::dispense(size_t needed, Series& elites, Series& criticals)
 std::pair<Series, Series> Reference::select(Series&& population)
 {
     auto layers = sort(std::forward<Series>(population));
+    
     auto results = std::make_pair<>(std::move(*layers.begin()), Series());
     auto& [elite, ordinary] = results;
 
 //  move the better individuals into the solution set
-    while(elite.size() + layers.begin()->size() < selection_)
+    while(elite.size() + layers.begin()->size() <= selection_)
     {
         elite.splice(elite.end(), *layers.begin());
         layers.pop_front();
