@@ -49,4 +49,15 @@ namespace GeneticAlgorithm
         virtual ~Optimizor() {}
     };
 }
+
+namespace Coevolution
+{
+    class Species
+    {
+    };
+    class CCEA
+    {
+    };
+};
+
 #endif //! _MATH_OPTIMIZATION_GENETIC_ALGORITHM_
