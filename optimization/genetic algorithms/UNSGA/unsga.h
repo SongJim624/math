@@ -17,39 +17,46 @@
 #include <ranges>
 
 #include "../../../basic/math.h"
-#include "../genetic algorithm.h"
+#include "../evolutionary.h"
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_
 #define _MATH_OPTIMIZATION_UNSGA_
-using Individual = double *;
-using Series = GeneticAlgorithm::Series<Individual>;
 using Pointer = std::unique_ptr<double[], decltype(&math::free<double>)>;
 Pointer create(size_t length);
 
-class Reference : public GeneticAlgorithm::Selector<Individual>
+class Individual
+{
+private:
+	Pointer data_;
+
+public:
+	double *decisions, *objectives, *voilations;
+
+public:
+	Individual(size_t scale, size_t dimension, size_t constraint);
+};
+
+class Reference : public Evolutionary::Selector<Individual>
 {
 private:
 	size_t dimension_, scale_, constraint_, selection_;
 	Pointer ideal_, interception_;
 
 //	simplified reference plain
-	std::list<Pointer> points_;
-	std::list<std::tuple<double*, size_t, std::list<Individual>>> associations_;
-
-//	std::map<double*, std::pair<size_t, std::list<Individual>>> associations_;
+	std::list<std::tuple<Pointer, size_t, std::list<Individual*>>> associations_;
 
 private:
-	void dispense(size_t needed, Series& elites, Series& cirticals);
+	void dispense(size_t needed, std::list<Individual*>& elites, std::list<Individual*>& cirticals);
 
-	virtual std::list<Series> sort(Series&& population) const;
-	virtual std::pair<Series, Series> select(Series&& population);
+	virtual std::list<std::list<Individual*>> sort(const std::list<Individual*>& population) const;
+	virtual std::pair<std::list<Individual*>, std::list<Individual*>> select(const std::list<Individual*>& population);
 
 public:
 	Reference(const math::Optimizor::Configuration& configuration);
 	virtual ~Reference() {}
 };
 
-class Reproducor : public GeneticAlgorithm::Reproducor<Individual>
+class Reproducor : public Evolutionary::Reproducor<Individual>
 {
 private:
 	size_t scale_, dimension_;
@@ -62,50 +69,48 @@ private:
 	std::uniform_real_distribution<double> uniform_;
 
 private:
-	virtual void check(Individual individuals);
-	virtual void cross(const Individual parents[2], Individual children[2]);
-	virtual void mutate(Individual individua);
+	virtual void check(Individual& individuals);
+	virtual void cross(const Individual& father, const Individual& mother, Individual& son, Individual& daughter);
+	virtual void mutate(Individual& individua);
 
 private:
-	virtual Series reproduce(std::pair<Series, Series>&& population);
+	virtual std::list<Individual*> reproduce(std::pair<std::list<Individual*>, std::list<Individual*>>&& population);
 
 public:
 	Reproducor(math::Optimizor::Configuration& configuration);
 	virtual ~Reproducor() {}
 };
 
-class Population : public GeneticAlgorithm::Population, public math::Optimizor::Result
+class Population : public Evolutionary::Population<Individual>
 {
 private:
-	std::unique_ptr<GeneticAlgorithm::Selector<Individual>> selector_;
-	std::unique_ptr<GeneticAlgorithm::Reproducor<Individual>> reproducor_;
+	std::unique_ptr<Reference> selector_;
+	std::unique_ptr<Reproducor> reproducor_;
 
-private:
-	size_t scale_, dimension_, constraint_;
-	std::list<Pointer> population_;
-	std::list<double*> individuals_;
+public:
+	virtual Evolutionary::Selector<Individual>& selector();
+	virtual Evolutionary::Reproducor<Individual>& reproducor();
 
-private:
-	virtual void evolve(size_t generation);
-	virtual void write(const char * file);
+public:
+	size_t scale, dimension, constraint;
+	std::list<Individual*> individuals;
+
 public:
 	Population(math::Optimizor::Configuration& configuration);
-	virtual ~Population() {}
+	virtual ~Population();
 };
 
-class UNSGA : public GeneticAlgorithm::Optimizor
+class UNSGA : public Evolutionary::Evolutionary
 {
 private:
-	std::unique_ptr<GeneticAlgorithm::Population> population_;
+	std::unique_ptr<Population> population_;
+
+protected:
+	virtual void write(const char * filepath);
+	virtual void evolve(size_t generation);
+	virtual math::Optimizor::Result& optimize(math::Optimizor::Configuration& configuration);
 
 public:
-	virtual Optimizor::Result& optimize(math::Optimizor::Configuration& configuration)
-	{
-		population_ = std::make_unique<Population>(configuration);
-		population_->evolve(std::get<size_t>(configuration["maximum"]));
-		return *dynamic_cast<Population*>(population_.get());
-	}
-
 	virtual ~UNSGA() {}
 };
 #endif //!_MATH_OPTIMIZATION_UNSGA_

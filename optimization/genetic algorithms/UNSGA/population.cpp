@@ -14,50 +14,20 @@ void generate(size_t scale, double *decisions, double *upper, double *lower, dou
     }
 }
 
-Pointer create(size_t length)
+Evolutionary::Selector<Individual>& Population::selector()
 {
-    return Pointer(math::allocate<double>(length), math::free<double>);
+    return *selector_;
 }
 
-void Population::evolve(size_t generation)
+Evolutionary::Reproducor<Individual>& Population::reproducor()
 {
-    for (size_t i = 0; i < generation; ++i)
-    {
-        std::cout << "executing the " << i << " th generation" << std::endl;
-        individuals_ = reproducor_->reproduce(selector_->select(std::forward<Series>(individuals_)));
-    }
-}
-
-void Population::write(const char * path)
-{
-	std::ofstream file(path);
-	auto elites = selector_->sort(std::forward<Series>(individuals_));
-
-	for (const auto& individual : *elites.begin())
-//	for (const auto& individual : individuals_)
-	{
-		for (size_t i = 0; i < scale_ + dimension_ + constraint_; ++i)
-		{
-			file << individual[i] << "\t";
-		}
-		file << std::endl;
-	}
-
-	file.close();
-
-/*
-    while(!elites.empty())
-    {
-        individuals_.splice(individuals_.end(), *elites.begin());
-        elites.pop_front();
-    }
-*/
+    return *reproducor_;
 }
 
 Population::Population(math::Optimizor::Configuration& configuration) :
-    scale_(std::get<size_t>(configuration["scale"])), 
-    dimension_(std::get<size_t>(configuration["dimension"])), 
-    constraint_(std::get<size_t>(configuration["constraint"])),
+    scale(std::get<size_t>(configuration["scale"])),
+    dimension(std::get<size_t>(configuration["dimension"])),
+    constraint(std::get<size_t>(configuration["constraint"])),
     selector_(std::make_unique<Reference>(configuration)), reproducor_(std::make_unique<Reproducor>(configuration))
 {
     size_t population = std::get<size_t>(configuration["population"]);
@@ -80,27 +50,31 @@ Population::Population(math::Optimizor::Configuration& configuration) :
     std::mt19937_64 generator(seed());
     std::uniform_real_distribution<double> uniform(0, 1);
 
-    while(initials.size() != population)
-    {
-        std::vector<double> decisions(scale_);
+    individuals.resize(population);
+    std::generate(individuals.begin(), individuals.end(), [this]() { return new Individual(scale, dimension, constraint); });
 
-        for(auto& decision : decisions)
+    auto initial = initials.begin();
+    for(auto& individual : individuals)
+    {
+        if(initial == initials.end())
         {
-            decision = uniform(generator);
+            std::generate(individual->decisions, individual->decisions + scale, [&uniform, &generator]() { return uniform(generator); });
+        }
+        else
+        {
+            math::copy(scale, &(*initial)[0], 1, individual->decisions, 1);
+            initial++;
         }
 
-        generate(dimension_, &decisions[0], &upper[0], &lower[0], &integer[0]);
-        initials.push_back(std::move(decisions));
+        (*configuration.objective)(individual->decisions, individual->objectives, individual->voilations);
     }
+}
 
-    for(const auto& decisions : initials)
+Population::~Population()
+{
+    for(auto& individual : individuals)
     {
-        population_.push_back(create(scale_ + dimension_ + constraint_));
-        auto individual = population_.rbegin()->get();
-
-        math::copy(scale_, &decisions[0], 1, individual, 1);
-        (*configuration.objective)(individual, individual + scale_, individual + scale_ + dimension_);
-
-        individuals_.push_back(individual);
+        delete individual;
+        individual = nullptr;
     }
 }

@@ -1,11 +1,11 @@
 #include "unsga.h"
 
 //  simulated binary crossover
-void Reproducor::cross(const Individual parents[2], Individual children[2])
+void Reproducor::cross(const Individual& father, const Individual& mother, Individual& son, Individual& daughter)
 {
     auto randoms = create(scale_);
     auto temporary = create(scale_);
-    auto father = parents[0], mother = parents[1], son = children[0], daughter = children[1];
+//    auto father = parents[0], mother = parents[1], son = children[0], daughter = children[1];
 
     for(auto r = randoms.get(); r != randoms.get() + scale_; *r = uniform_(generator_), ++r)
     {
@@ -15,52 +15,52 @@ void Reproducor::cross(const Individual parents[2], Individual children[2])
     double probability = 1 / (cross_ + 1);
     math::powI(scale_, randoms.get(), 1, &probability, 0, randoms.get(), 1);
 
-    math::sub(scale_, father, mother, temporary.get());
+    math::sub(scale_, father.decisions, mother.decisions, temporary.get());
     math::mul(scale_, randoms.get(), temporary.get(), temporary.get());
 
-    math::add(scale_, father, mother, son);
-    math::sub(scale_, son, temporary.get(), son);
-    math::scal(scale_, 0.5, son, 1);
+    math::add(scale_, father.decisions, mother.decisions, son.decisions);
+    math::sub(scale_, son.decisions, temporary.get(), son.decisions);
+    math::scal(scale_, 0.5, son.decisions, 1);
 
-    math::add(scale_, father, mother, daughter);
-    math::add(scale_, daughter, temporary.get(), daughter);
-    math::scal(scale_, 0.5, daughter, 1);
+    math::add(scale_, father.decisions, mother.decisions, daughter.decisions);
+    math::add(scale_, daughter.decisions, temporary.get(), daughter.decisions);
+    math::scal(scale_, 0.5, daughter.decisions, 1);
 
     check(son);
     check(daughter);
 }
 
-void Reproducor::mutate(Individual individual)
+void Reproducor::mutate(Individual& individual)
 {
     for (size_t i = 0; i < scale_; ++i)
     {
         double random = uniform_(generator_);
-        double weight = ((random < 0.5) ? (upper_[i] - individual[i]) : (individual[i] - lower_[i])) / (upper_[i] - lower_[i]);
+        double weight = ((random < 0.5) ? (upper_[i] - individual.decisions[i]) : (individual.decisions[i] - lower_[i])) / (upper_[i] - lower_[i]);
 
         double base = std::min(random, 1 - random);
         base = std::pow(2 * base + (1 - 2 * base) * std::pow(weight, mutation_ + 1), 1.0 / (mutation_ + 1.0));
 
-        individual[i] += random <  0.5 ? base - 1 : 1 - base;
+        individual.decisions[i] += random <  0.5 ? base - 1 : 1 - base;
     }
 
     check(individual);
 }
 
-void Reproducor::check(Individual individual)
+void Reproducor::check(Individual& individual)
 {
-    for(auto value = individual, upper = upper_.get(), lower = lower_.get(), integer = integer_.get();
-        value != individual + scale_; ++value, ++upper, ++lower, ++integer)
+    for(auto value = individual.decisions, upper = upper_.get(), lower = lower_.get(), integer = integer_.get();
+        value != individual.decisions + scale_; ++value, ++upper, ++lower, ++integer)
     {
 		*value = std::max(std::min(*value, *upper), *lower);
         *value = *integer ? std::round(*value) : *value;
     }
 }
 
-Series Reproducor::reproduce(std::pair<Series, Series>&& population)
+std::list<Individual*> Reproducor::reproduce(std::pair<std::list<Individual*>, std::list<Individual*>>&& population)
 {
     auto& [elites, ordinaries] = population;
 
-    Series offsprings = {};
+    std::list<Individual*> offsprings = {};
 
 //  by this way, elites will not be more than ordinaries
     if (elites.size() % 2)
@@ -72,15 +72,13 @@ Series Reproducor::reproduce(std::pair<Series, Series>&& population)
     ordinaries.reverse();
     for(auto iter = elites.begin(); iter != elites.end() && !ordinaries.empty(); iter = std::next(iter, 2))
     {
-        Individual parents[2] = { *iter, *std::next(iter) };
-        Individual children[2] = { *ordinaries.begin(), *std::next(ordinaries.begin()) };
+        cross(**iter, **std::next(iter), **ordinaries.begin(), **std::next(ordinaries.begin()));
 
-        cross(parents, children);
-
-        for (auto& individual : children)
+        for (size_t i = 0; i < 2;  ++i)
         {
-            uniform_(generator_) > threshold_ ? mutate(individual) : void();
-            (*function_)(individual, individual + scale_, individual + scale_ + dimension_);
+            auto& child = **std::next(ordinaries.begin(), i);
+            uniform_(generator_) > threshold_ ? mutate(child) : void();
+            (*function_)(child.decisions, child.objectives, child.voilations);
         }
 
         offsprings.splice(offsprings.end(), ordinaries, ordinaries.begin(), std::next(ordinaries.begin(), 2));

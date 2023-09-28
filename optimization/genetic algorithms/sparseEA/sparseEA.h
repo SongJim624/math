@@ -17,7 +17,7 @@
 #include <vector>
 
 #include "../../../basic/math.h"
-#include "../genetic algorithm.h"
+#include "../evolutionary.h"
 
 /*
  *  article information :
@@ -26,21 +26,29 @@
 
 #ifndef _MATH_OPTIMIZATION_SPARSEEA_
 #define _MATH_OPTIMIZATION_SAPRSEEA_
-using Individual = std::pair<double*, size_t*>;
-using Series = GeneticAlgorithm::Series<Individual>;
-template<typename T>
-using Pointer = std::unique_ptr<T[], decltype(&math::free<T>)>;
+using Pointer = std::unique_ptr<double[], decltype(&math::free<double>)>;
 
-template<typename T>
-Pointer<T> create(size_t length)
+Pointer create(size_t length)
 {
-	return Pointer<T>(math::allocate<T>(length), math::free<T>);
+	return Pointer(math::allocate<double>(length), math::free<double>);
 }
+
+class Individual
+{
+private:
+	Pointer data_;
+public:
+	double *decisions, *objectives, *voilations, *masks;
+
+public:
+	Individual(size_t scale, size_t dimension, size_t constraint);
+	~Individual();
+};
 
 //	implemented in sparseea.cpp
 void evaluation(size_t scale, size_t dimension, math::Optimizor::Objective& function, Individual& individual);
 
-class Reference : public GeneticAlgorithm::Selector<Individual>
+class Reference : public Evolutionary::Selector<Individual>
 {
 private:
 	std::shared_ptr<size_t[]> importanaces_;
@@ -115,7 +123,7 @@ public:
 	virtual ~Population() {}
 };
 
-class SparseEA : public GeneticAlgorithm::Optimizor
+class SparseEA : public Evolutionary::Evolutionary
 {
 private:
 	std::unique_ptr<GeneticAlgorithm::Population> population_;

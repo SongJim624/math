@@ -1,23 +1,8 @@
 #include "sparseea.h"
-
-void evaluation(size_t scale, size_t dimension, math::Optimizor::Objective& function, Individual& individual)
-{
-    auto temporary = create<double>(scale);
-    math::copy<double>(scale, individual.first, 1, temporary.get(), 1);
-
-    for (size_t i = 0; i < scale; ++i)
-    {
-        individual.first[i] *= individual.second[i];
-    }
-
-    function(individual.first, individual.first + scale, individual.first + scale + dimension);
-    math::copy<double>(scale, temporary.get(), 1, individual.first, 1);
-}
-
 // simulated binary cross over function for the decisions
 void cross(double exponent, size_t scale, double *randoms, double* parents[2], double* children[2])
 {
-    auto temporary = create<double>(scale);
+    auto temporary = create(scale);
     auto father = parents[0], mother = parents[1], son = children[0], daughter = children[1];
 
     for (auto r = randoms; r != randoms + scale; ++r)
@@ -43,9 +28,6 @@ void cross(double exponent, size_t scale, double *randoms, double* parents[2], d
 //  cross over function for the masks
 void cross(double exponent, size_t scale, double* randoms, const std::map<size_t, std::list<size_t>>& importances, size_t* parents[2], size_t* children[2])
 {
-
-
-
 
 }
 
