@@ -41,7 +41,7 @@ std::pair<bool, std::list<Individual*>> sort(size_t scale, size_t dimension, siz
     //  the lower set must be empty and hence no need for further comparison
         
     //  the individual is dominated by a member in the current layer
-        if(indicator == 1) {  status = false; break; }
+        if(indicator == 1) {  status = false; }
 
         indicator == -1 ? dominated.push_back(*member) : void();
         member = indicator == -1 ? current.erase(member) : std::next(member);
@@ -52,73 +52,40 @@ std::pair<bool, std::list<Individual*>> sort(size_t scale, size_t dimension, siz
 
 std::list<std::list<Individual*>> sort(size_t scale, size_t dimension, size_t constraint, const std::list<Individual*>& individuals)
 {
-//  initialize the layer, move an individual from population to the layer
-    auto individual = individuals.begin();
-    std::list<std::list<Individual*>> results = { { *individual } };
+    std::list<std::list<Individual*>> results = { {} };
 
 //  the non dominated sort is re-designed per bubble sort idea
-    for(individual++; individual != individuals.end(); ++individual)
+    for(const auto& individual : individuals)
     {
+        std::list<Individual*> dominated(0);
     //  bubble sorting loop
         for (auto layer = results.begin(); layer != results.end(); ++layer)
         {
         //  status : dominating status, true if not dominated by any members in the current layer
         //  lower : individuals dominated by the individual and moved out from the current layer
-            auto [status, lower] = sort(scale, dimension, constraint, *individual, *layer);
+            auto&& [status, lower] = sort(scale, dimension, constraint, individual, *layer);
 
-            if (status)
-            {
-                layer->push_back(*individual);
-                lower.empty() ? layer : results.insert(std::next(layer), lower);
-                break;
-            }
-            else
-            {
-                if (std::next(layer) == results.end())
-                {
-                    results.push_back({ *individual });
-                    lower.empty() ? layer : results.insert(results.end(), lower);
-                    break;
-                }
-                else
-                {
-                    if (!lower.empty())
-                    {
-                        std::cout << "error : individual is dominated but it dominates individuals" << std::endl;
-                        std::cout << "===========================================" << std::endl;
-                        std::cout << (*individual)->objectives[0] << "\t" << (*individual)->objectives[1] << "\t" << (*individual)->voilations[0] << std::endl;
-                        std::cout << "===========================================" << std::endl;
-                        for(const auto& dominated : lower)
-                        {
-                            dominate(constraint, (*individual)->voilations, (*lower.begin())->voilations);
-                            dominate(dimension, (*individual)->objectives, (*lower.begin())->objectives);
-                            
-                            std::cout << dominated->objectives[0] << "\t" << dominated->objectives[1] << "\t"  << (*individual)->voilations[0] << std::endl;
-                        }
-                        std::cout << "===========================================" << std::endl;
-                        layer->insert(layer->end(), lower.begin(), lower.end());
-                    }
+        //  merge the dominated individuals to the dominated list
+        //  theoretically, if a individual is dominated by an individual in the current layer
+        //  the individuals dominated by this individual should not occur in this layer
+        //  however,  due to the equal judgement of the floating number
+        //  there are still the situations that an individual can be dominated by an individual and dominates individuals in a layer
+            dominated.splice(dominated.end(), std::forward<std::list<Individual*>&&>(lower));
 
-                    continue;
-                }
-            }
+            if ((!status) && std::next(layer) != results.end()) { continue; }
 
-        //  if the individual is dominated by a member in the current layer
-        //  and there are still further layers, continue the bubble sorting loop
-//            if((!status) && (std::next(layer) != results.end())) { continue; }
+            status ? layer->push_back(individual) : results.push_back({ individual });
 
-        //  if the indiviudual is not dominated by any member in the current layer
-        //  add it to the current layer, or do nothing
-//            status ? layer->push_back(*individual) : void();
-
-        //  if the individual is dominated by a member in the current layer and there is no further layer
-        //  create a layer at the end of results and store the individual in it
-        //  if the individual is not dominated by any member in the current layer and dominateds some inviduals
-        //  create a new lower layer to store the individuals, which still maintains the dominating relationship
-//            (!status) ? results.insert(results.end(), { *individual }) : lower.empty() ? layer : results.insert(std::next(layer), lower);
-
-        //  exit the buble sorting loop
-//            break;
+        //  determine the process for dominated individuals
+        //  if status is false, it means the individual has been appended to the end of results,
+        //  and the dominated individuals should be appended after the invididual
+        //  if status is true, it means the individual has been merged to the current layer,
+        //  only if there are no further layers need the individuals to be appended to the end of results,
+        //  or merge them to the next layer
+            bool append = (!status) || std::next(layer) == results.end();
+            append ? (dominated.empty() ? void() : results.push_back(dominated)) : std::next(layer)->splice(std::next(layer)->end(), dominated);
+        //  exit the loop
+            break;
         }
     }
 
