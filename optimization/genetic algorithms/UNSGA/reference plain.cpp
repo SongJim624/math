@@ -4,9 +4,9 @@
  ***************************************************************/
 int dominate(size_t length, const double* lhs, const double* rhs)
 /*
- * return 1 indicates lhs dominate rhs
- * return 0 indicates non dominated
- * retun -1 indicates rhs domiantes lhs
+ *  1 indicates lhs dominate rhs
+ *  0 indicates non dominated
+ * -1 indicates rhs domiantes lhs
  */
 {
     size_t counts[3] = { 0, 0, 0 };
@@ -19,30 +19,31 @@ int dominate(size_t length, const double* lhs, const double* rhs)
     return (counts[1] == length) ? 0 : ((!counts[0]) ? 1 : ((!counts[2]) ? -1 : 0));
 }
 
-int dominate(size_t scale, size_t dimension, size_t constraint, const Individual& lhs, const Individual& rhs)
+int dominate(size_t dimension, size_t constraint, const Individual& lhs, const Individual& rhs)
 {
 //  compare the voilations of the constraints first
+//  by this way, voilations have higher priority
     int status = dominate(constraint, lhs.voilations, rhs.voilations);
 //  compare the objectives if no constraints voilation of the two individuals
     return status != 0 ? status : dominate(dimension, lhs.objectives, rhs.objectives);
 }
 
-std::pair<bool, std::list<Individual*>> sort(size_t scale, size_t dimension, size_t constraint, Individual* individual, std::list<Individual*>& current)
+std::pair<bool, std::list<Individual*>> sort(size_t dimension, size_t constraint, Individual* individual, std::list<Individual*>& current)
 {
     auto results = std::make_pair<bool, std::list<Individual*>>(true, {});
     auto& [status, dominated] = results;
 
     for(auto member = current.begin(); member != current.end();)
     {
-        auto indicator = dominate(scale, dimension, constraint, **member, *individual);
+        auto indicator = dominate(dimension, constraint, **member, *individual);
 
-    //  if the individual is dominated by a member in the current layer
-    //  individuals that the individual can dominate have been sorted into lower layers during previous sorting
-    //  the lower set must be empty and hence no need for further comparison
-        
-    //  the individual is dominated by a member in the current layer
-        if(indicator == 1) {  status = false; }
-
+    //  theoretically, if a individual is dominated by an individual in the current layer,
+    //  the individuals dominated by this individual should not occur in this layer but the lower layers,
+    //  which means once the indicator equals to -1, the loop should be stopped
+    //  because 
+    //  however,  due to the equal judgement of the floating number
+    //  there are still the situations that an individual can be dominated by an individual and dominates individuals in a layer
+        status = status && (indicator != 1);
         indicator == -1 ? dominated.push_back(*member) : void();
         member = indicator == -1 ? current.erase(member) : std::next(member);
     }
@@ -50,7 +51,7 @@ std::pair<bool, std::list<Individual*>> sort(size_t scale, size_t dimension, siz
     return results;
 }
 
-std::list<std::list<Individual*>> sort(size_t scale, size_t dimension, size_t constraint, const std::list<Individual*>& individuals)
+std::list<std::list<Individual*>> sort(size_t dimension, size_t constraint, const std::list<Individual*>& individuals)
 {
     std::list<std::list<Individual*>> results = { {} };
 
@@ -63,13 +64,9 @@ std::list<std::list<Individual*>> sort(size_t scale, size_t dimension, size_t co
         {
         //  status : dominating status, true if not dominated by any members in the current layer
         //  lower : individuals dominated by the individual and moved out from the current layer
-            auto&& [status, lower] = sort(scale, dimension, constraint, individual, *layer);
+            auto&& [status, lower] = sort(dimension, constraint, individual, *layer);
 
         //  merge the dominated individuals to the dominated list
-        //  theoretically, if a individual is dominated by an individual in the current layer
-        //  the individuals dominated by this individual should not occur in this layer
-        //  however,  due to the equal judgement of the floating number
-        //  there are still the situations that an individual can be dominated by an individual and dominates individuals in a layer
             dominated.splice(dominated.end(), std::forward<std::list<Individual*>&&>(lower));
 
             if ((!status) && std::next(layer) != results.end()) { continue; }
@@ -84,6 +81,7 @@ std::list<std::list<Individual*>> sort(size_t scale, size_t dimension, size_t co
         //  or merge them to the next layer
             bool append = (!status) || std::next(layer) == results.end();
             append ? (dominated.empty() ? void() : results.push_back(dominated)) : std::next(layer)->splice(std::next(layer)->end(), dominated);
+
         //  exit the loop
             break;
         }
@@ -95,7 +93,7 @@ std::list<std::list<Individual*>> sort(size_t scale, size_t dimension, size_t co
 std::list<std::list<Individual*>> Reference::sort(const std::list<Individual*>& population) const
 {
 //    size_t scale_, dimension_, constraint_;
-    return ::sort(scale_, dimension_, constraint_, population);
+    return ::sort(dimension_, constraint_, population);
 }
 
 /**************************************************************************
