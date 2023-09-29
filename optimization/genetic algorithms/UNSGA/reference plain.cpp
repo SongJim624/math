@@ -39,8 +39,7 @@ std::pair<bool, std::list<Individual*>> sort(size_t dimension, size_t constraint
 
     //  theoretically, if a individual is dominated by an individual in the current layer,
     //  the individuals dominated by this individual should not occur in this layer but the lower layers,
-    //  which means once the indicator equals to -1, the loop should be stopped
-    //  because 
+    //  which means once the indicator equals to -1, the loop should be stopped.
     //  however,  due to the equal judgement of the floating number
     //  there are still the situations that an individual can be dominated by an individual and dominates individuals in a layer
         status = status && (indicator != 1);
