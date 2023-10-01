@@ -21,11 +21,12 @@
 
 /*
  *  article information :
- *
+ *	[1] Improved SparseEA for sparse large-scale multi-objective optimization problems. Complex & Intelligent Systems
+ *	[2] 
  */
 
-#ifndef _MATH_OPTIMIZATION_SPARSEEA_
-#define _MATH_OPTIMIZATION_SAPRSEEA_
+#ifndef _math_optimization_evolutionary_sparseEA_
+#define _math_optimization_evolutionary_sparseEA_
 using Pointer = std::unique_ptr<double[], decltype(&math::free<double>)>;
 
 Pointer create(size_t length)
@@ -45,40 +46,32 @@ public:
 	~Individual();
 };
 
-//	implemented in sparseea.cpp
-void evaluation(size_t scale, size_t dimension, math::Optimizor::Objective& function, Individual& individual);
-
 class Reference : public Evolutionary::Selector<Individual>
 {
 private:
-	std::shared_ptr<size_t[]> importanaces_;
-
-private:
 	size_t dimension_, scale_, constraint_, selection_;
-	Pointer<double> ideal_, interception_;
+	Pointer ideal_, interception_;
 
 //	simplified reference plain
-	std::list<Pointer<double>> points_;
-	std::map<double*, std::pair<size_t, std::list<Individual>>> associations_;
+	std::list<std::tuple<Pointer, size_t, std::list<Individual*>>> associations_;
 
 private:
-	void dispense(size_t needed, Series& elites, Series& cirticals);
+	void dispense(size_t needed, std::list<Individual*>& elites, std::list<Individual*>& cirticals);
 
-	virtual std::list<Series> sort(Series&& population) const;
-	virtual std::pair<Series, Series> select(Series&& population);
+	virtual std::list<std::list<Individual*>> sort(const std::list<Individual*>& population) const;
+	virtual std::pair<std::list<Individual*>, std::list<Individual*>> select(const std::list<Individual*>& population);
 
 public:
-	Reference(math::Optimizor::Configuration& configuration);
+	Reference(const math::Optimizor::Configuration& configuration);
 	virtual ~Reference() {}
 };
 
-class Reproducor : public GeneticAlgorithm::Reproducor<Individual>
+class Reproducor : public Evolutionary::Reproducor<Individual>
 {
 private:
-	std::shared_ptr<std::map<size_t, std::list<size_t>>> importances_;
 	size_t scale_, dimension_;
 	double cross_, mutation_, threshold_;
-	Pointer<double> upper_, lower_, integer_;
+	Pointer upper_, lower_, integer_;
 	math::Optimizor::Objective *function_;
 
 private:
@@ -86,41 +79,35 @@ private:
 	std::uniform_real_distribution<double> uniform_;
 
 private:
-	virtual void check(Individual individuals);
-	virtual void cross(const Individual parents[2], Individual children[2]);
-	virtual void mutate(Individual individua);
+	virtual void check(Individual& individuals);
+	virtual void cross(const Individual& father, const Individual& mother, Individual& son, Individual& daughter);
+	virtual void mutate(Individual& individua);
 
 private:
-	virtual Series reproduce(std::pair<Series, Series>&& population);
+	virtual std::list<Individual*> reproduce(std::pair<std::list<Individual*>, std::list<Individual*>>&& population);
 
 public:
-	Reproducor(std::shared_ptr<std::map<size_t, std::list<size_t>>> importances, math::Optimizor::Configuration& configuration);
+	Reproducor(math::Optimizor::Configuration& configuration);
 	virtual ~Reproducor() {}
 };
 
-class Population : public GeneticAlgorithm::Population, public math::Optimizor::Result
+class Population : public Evolutionary::Population<Individual>
 {
 private:
-	size_t scale_, dimension_, constraint_;
-	std::list<Pointer<double>>population_;
-	std::list<Pointer<size_t>> masks_;
-	std::list<Individual> individuals_;
-	std::shared_ptr<std::map<size_t, std::list<size_t>>> importances_;
+	std::unique_ptr<Reference> selector_;
+	std::unique_ptr<Reproducor> reproducor_;
 
-private:
-	std::unique_ptr<GeneticAlgorithm::Selector<Individual>> selector_;
-	std::unique_ptr<GeneticAlgorithm::Reproducor<Individual>> reproducor_;
+public:
+	virtual Evolutionary::Selector<Individual>& selector();
+	virtual Evolutionary::Reproducor<Individual>& reproducor();
 
-private:
-	void importances(double* randoms, math::Optimizor::Objective& function);
-
-private:
-	virtual void evolve(size_t generation);
-	virtual void write(const char * file);
+public:
+	size_t scale, dimension, constraint, *importances;
+	std::list<Individual*> individuals;
 
 public:
 	Population(math::Optimizor::Configuration& configuration);
-	virtual ~Population() {}
+	virtual ~Population();
 };
 
 class SparseEA : public Evolutionary::Evolutionary
@@ -138,4 +125,4 @@ public:
 
 	virtual ~SparseEA() {}
 };
-#endif //!_MATH_OPTIMIZATION_UNSGA_
+#endif //!_math_optimization_evolutionary_sparseEA_

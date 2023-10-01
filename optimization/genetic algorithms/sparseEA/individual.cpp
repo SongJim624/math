@@ -11,4 +11,8 @@ Individual::Individual(size_t scale, size_t dimension, size_t constraint) :
 
 Individual::~Individual()
 {
+    decisions = nullptr;
+    objectives = nullptr;
+    voilations = nullptr;
+    masks = nullptr;
 }

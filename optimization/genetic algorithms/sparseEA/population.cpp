@@ -2,7 +2,7 @@
 
 void generate(size_t scale, double *decisions, double *upper, double *lower, double *integer)
 {
-    auto temporary = create<double>(scale);
+    auto temporary = create(scale);
 
     math::sub(scale, upper, lower, temporary.get());
     math::mul(scale, temporary.get(), decisions, decisions);
@@ -80,36 +80,11 @@ void mask(size_t length, const std::map<size_t, std::list<size_t>>& importances,
     }
 }
 
-void Population::evolve(size_t generation)
-{
-    for (size_t i = 0; i < generation; ++i)
-    {
-        individuals_ = reproducor_->reproduce(selector_->select(std::forward<Series>(individuals_)));
-    }
-}
-
-void Population::write(const char * path)
-{
-	std::ofstream file(path);
-	auto elites = selector_->sort(std::forward<Series>(individuals_));
-
-	for (const auto& individual : *elites.begin())
-	{
-		for (size_t i = 0; i < scale_ + dimension_ + constraint_; ++i)
-		{
-			file << individual.first[i] << "\t";
-		}
-		file << std::endl;
-	}
-
-	file.close();
-}
-
 Population::Population(math::Optimizor::Configuration& configuration) :
-    scale_(std::get<size_t>(configuration["scale"])),
-    dimension_(std::get<size_t>(configuration["dimension"])),
-    constraint_(std::get<size_t>(configuration["constraint"])),
-    importances_(std::make_shared<std::map<size_t, std::list<size_t>>>()),
+    scale(std::get<size_t>(configuration["scale"])),
+    dimension(std::get<size_t>(configuration["dimension"])),
+    constraint(std::get<size_t>(configuration["constraint"])),
+    importances(std::make_shared<std::map<size_t, std::list<size_t>>>()),
     selector_(std::make_unique<Reference>(configuration)), 
     reproducor_(std::make_unique<Reproducor>(importances_, configuration))
 {

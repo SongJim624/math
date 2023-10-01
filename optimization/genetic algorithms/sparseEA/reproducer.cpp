@@ -1,10 +1,8 @@
 #include "sparseea.h"
 // simulated binary cross over function for the decisions
-void cross(double exponent, size_t scale, double *randoms, double* parents[2], double* children[2])
+void cross(double exponent, size_t scale, double *randoms, const double* father, const double* mother, double* son, double* daughter)
 {
     auto temporary = create(scale);
-    auto father = parents[0], mother = parents[1], son = children[0], daughter = children[1];
-
     for (auto r = randoms; r != randoms + scale; ++r)
     {
         *r = (*r < 0.5) ? 2.0 * *r : 0.5 / (1.0 - *r);
@@ -25,12 +23,7 @@ void cross(double exponent, size_t scale, double *randoms, double* parents[2], d
     math::scal(scale, 0.5, daughter, 1);
 }
 
-//  cross over function for the masks
-void cross(double exponent, size_t scale, double* randoms, const std::map<size_t, std::list<size_t>>& importances, size_t* parents[2], size_t* children[2])
-{
-
-}
-
+//  polynomial mutation
 void mutate(double exponent, size_t scale, double * randoms, double* individual, double *upper, double * lower)
 {
     for (size_t i = 0; i < scale; ++i)
@@ -42,6 +35,23 @@ void mutate(double exponent, size_t scale, double * randoms, double* individual,
 
         individual[i] += randoms[i] < 0.5 ? base - 1 : 1 - base;
     }
+}
+
+
+//  cross over function for the masks
+void cross(size_t scale, double* randoms, const double* father, const double* mother, double* son, double* daughter, size_t* importances)
+{
+    auto temporary = create(scale);
+    double one = 1;
+
+    if(randoms[0] < 0.5)
+    {
+        math::subI(scale, &one, 1, randoms[0] < 0.5 ? mother : father, 1, temporary.get(), 1);
+    }
+    else
+    {
+    }
+
 }
 
 //  simulated binary crossover
