@@ -13,7 +13,7 @@ namespace math
     template<typename T>
     T* allocate(size_t length)
     {
-        return reinterpret_cast<T*>(std::malloc(length * sizeof(T)));
+        return reinterpret_cast<T*>(std::calloc(length, sizeof(T)));
     }
 
     template<typename T>

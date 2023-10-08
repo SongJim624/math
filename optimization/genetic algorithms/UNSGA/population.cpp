@@ -40,7 +40,7 @@ Population::Population(math::Optimizor::Configuration& configuration) :
 
     try
     {
-        initials = std::get<std::vector<std::vector<double>>>(configuration["initials"]);
+        initials = std::get<std::vector<std::vector<double>>>(configuration["initial"]);
     }
     catch(...)
     {
@@ -59,6 +59,7 @@ Population::Population(math::Optimizor::Configuration& configuration) :
         if(initial == initials.end())
         {
             std::generate(individual->decisions, individual->decisions + scale, [&uniform, &generator]() { return uniform(generator); });
+            generate(scale, individual->decisions, &upper[0], &lower[0], &integer[0]);
         }
         else
         {

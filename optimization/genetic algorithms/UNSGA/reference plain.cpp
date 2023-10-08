@@ -13,7 +13,7 @@ int dominate(size_t length, const double* lhs, const double* rhs)
 
     for (size_t i = 0; i < length; ++i)
     {
-        counts[std::abs(lhs[i] - rhs[i]) < 1e-6 ? 1 : (lhs[i] > rhs[i] ? 0 : 2)]++;
+        counts[std::abs(lhs[i] - rhs[i]) < 1e-10 ? 1 : (lhs[i] > rhs[i] ? 0 : 2)]++;
     }
 
     return (counts[1] == length) ? 0 : ((!counts[0]) ? 1 : ((!counts[2]) ? -1 : 0));
@@ -215,7 +215,7 @@ double* interception(double* values, const double * ideal, size_t scale, size_t 
 {
     auto cost = create(dimension), max = create(dimension),  matrix = create(dimension * dimension);
 
-    std::vector<std::pair<double, double*>> nearest(dimension, { double(+INFINITY), nullptr});
+    std::vector<std::pair<double, double*>> nearest(dimension, { std::nan("0"), nullptr});
 
     for (auto& individual : individuals)
     {
@@ -226,7 +226,8 @@ double* interception(double* values, const double * ideal, size_t scale, size_t 
             max[axis] = std::max(cost[axis], max[axis]);
 
             double distance = ::scale(axis, dimension, cost.get());
-            if (distance < nearest[axis].first)
+            
+            if (std::isnan(nearest[axis].first) || (distance < nearest[axis].first))
             {
                 nearest[axis].first = distance;
                 nearest[axis].second = individual->objectives;

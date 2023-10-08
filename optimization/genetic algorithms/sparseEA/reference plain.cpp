@@ -1,41 +1,48 @@
-#include "sparseea.h"
+#include "sparseEA.h"
 /**************************************************************************
  *  non dominated sort
  ***************************************************************/
-int dominate(size_t length, const double *lhs, const double *rhs)
+int dominate(size_t length, const double* lhs, const double* rhs)
+/*
+ *  1 indicates lhs dominate rhs
+ *  0 indicates non dominated
+ * -1 indicates rhs domiantes lhs
+ */
 {
     size_t counts[3] = { 0, 0, 0 };
 
-    for(auto l = lhs, r = rhs; r != rhs + length; ++l, ++r)
+    for (size_t i = 0; i < length; ++i)
     {
-        counts[std::abs(*l - *r) < 1e-6 ? 1 : (*l > *r ? 0 : 2)]++;
+        counts[std::abs(lhs[i] - rhs[i]) < 1e-10 ? 1 : (lhs[i] > rhs[i] ? 0 : 2)]++;
     }
 
-    return (counts[1] == length) ? 0 : ((counts[0] == 0) ? 1 : ((counts[2] == 0) ? -1 : 0));
+    return (counts[1] == length) ? 0 : ((!counts[0]) ? 1 : ((!counts[2]) ? -1 : 0));
 }
 
-int dominate(size_t scale, size_t dimension, size_t constraint, const Individual& lhs, const Individual& rhs)
+int dominate(size_t dimension, size_t constraint, const Individual& lhs, const Individual& rhs)
 {
 //  compare the voilations of the constraints first
-    int status = dominate(constraint, lhs.first + scale + dimension, rhs.first + scale + dimension);
+//  by this way, voilations have higher priority
+    int status = dominate(constraint, lhs.voilations, rhs.voilations);
 //  compare the objectives if no constraints voilation of the two individuals
-    return status != 0 ? status : dominate(dimension, lhs.first + scale, rhs.first + scale);
+    return status != 0 ? status : dominate(dimension, lhs.objectives, rhs.objectives);
 }
 
-std::pair<bool, std::list<Individual>> sort(size_t scale, size_t dimension, size_t constraint, const Individual& individual, Series& current)
+std::pair<bool, std::list<Individual*>> sort(size_t dimension, size_t constraint, Individual* individual, std::list<Individual*>& current)
 {
-    auto results = std::make_pair<bool, std::list<Individual>>(true, {});
+    auto results = std::make_pair<bool, std::list<Individual*>>(true, {});
     auto& [status, dominated] = results;
 
-    for(auto member = current.begin(); member != current.end(); void())
+    for(auto member = current.begin(); member != current.end();)
     {
-        auto indicator = dominate(scale, dimension, constraint, *member, individual);
+        auto indicator = dominate(dimension, constraint, **member, *individual);
 
-    //  if the individual is dominated by a member in the current layer
-    //  individuals that the individual can dominate have been sorted into lower layers during previous sorting
-    //  the lower set must be empty and hence no need for further comparison
-        if(indicator == 1) {  status = false; break; }
-
+    //  theoretically, if a individual is dominated by an individual in the current layer,
+    //  the individuals dominated by this individual should not occur in this layer but the lower layers,
+    //  which means once the indicator equals to -1, the loop should be stopped.
+    //  however,  due to the equal judgement of the floating number
+    //  there are still the situations that an individual can be dominated by an individual and dominates individuals in a layer
+        status = status && (indicator != 1);
         indicator == -1 ? dominated.push_back(*member) : void();
         member = indicator == -1 ? current.erase(member) : std::next(member);
     }
@@ -43,37 +50,38 @@ std::pair<bool, std::list<Individual>> sort(size_t scale, size_t dimension, size
     return results;
 }
 
-std::list<Series> sort(size_t scale, size_t dimension, size_t constraint, const Series& individuals)
+std::list<std::list<Individual*>> sort(size_t dimension, size_t constraint, const std::list<Individual*>& individuals)
 {
-//  initialize the layer, move an individual from population to the layer
-    auto individual = individuals.begin();
-    std::list<Series> results = { { *individual } };
+    std::list<std::list<Individual*>> results = { {} };
 
 //  the non dominated sort is re-designed per bubble sort idea
-    for(individual++; individual != individuals.end(); ++individual)
+    for(const auto& individual : individuals)
     {
+        std::list<Individual*> dominated(0);
     //  bubble sorting loop
         for (auto layer = results.begin(); layer != results.end(); ++layer)
         {
         //  status : dominating status, true if not dominated by any members in the current layer
         //  lower : individuals dominated by the individual and moved out from the current layer
-            auto [status, lower] = sort(scale, dimension, constraint, *individual, *layer);
+            auto&& [status, lower] = sort(dimension, constraint, individual, *layer);
 
-        //  if the individual is dominated by a member in the current layer
-        //  and there are still further layers, continue the bubble sorting loop
-            if(!status && (std::next(layer) != results.end())) { continue; }
+        //  merge the dominated individuals to the dominated list
+            dominated.splice(dominated.end(), std::forward<std::list<Individual*>&&>(lower));
 
-        //  if the indiviudual is not dominated by any member in the current layer
-        //  add it to the current layer, or do nothing
-            status ? layer->push_back(*individual) : void();
+            if ((!status) && std::next(layer) != results.end()) { continue; }
 
-        //  if the individual is dominated by a member in the current layer and there is no further layer
-        //  create a layer at the end of results and store the individual in it
-        //  if the individual is not dominated by any member in the current layer and dominateds some inviduals
-        //  create a new lower layer to store the individuals, which still maintains the dominating relationship
-            !status ? results.insert(results.end(), { *individual }) : lower.empty() ? layer : results.insert(std::next(layer), lower);
+            status ? layer->push_back(individual) : results.push_back({ individual });
 
-        //  exit the buble sorting loop
+        //  determine the process for dominated individuals
+        //  if status is false, it means the individual has been appended to the end of results,
+        //  and the dominated individuals should be appended after the invididual
+        //  if status is true, it means the individual has been merged to the current layer,
+        //  only if there are no further layers need the individuals to be appended to the end of results,
+        //  or merge them to the next layer
+            bool append = (!status) || std::next(layer) == results.end();
+            append ? (dominated.empty() ? void() : results.push_back(dominated)) : std::next(layer)->splice(std::next(layer)->end(), dominated);
+
+        //  exit the loop
             break;
         }
     }
@@ -81,20 +89,28 @@ std::list<Series> sort(size_t scale, size_t dimension, size_t constraint, const 
     return results;
 }
 
-std::list<Series> Reference::sort(Series&& population) const
+std::list<std::list<Individual*>> Reference::sort(const std::list<Individual*>& population) const
 {
 //    size_t scale_, dimension_, constraint_;
-    return ::sort(scale_, dimension_, constraint_, population);
+    return ::sort(dimension_, constraint_, population);
 }
 
 /**************************************************************************
  *  elite reserve selection
  ***************************************************************/
-using Association = std::map<double*, std::pair<size_t, std::list<Individual>>>;
+using Association = std::list<std::tuple<Pointer, size_t, std::list<Individual*>>>;
+
+double dot(size_t length, const double* left, const double* right)
+{
+    auto temporary = create(length);
+    math::mul(length, left, right, temporary.get());
+
+    return std::accumulate(temporary.get(), temporary.get() + length, 0);
+}
 
 void doolittle(size_t dimension, double* matrix, double* vector)
 {
-    auto temporary = create<double>(dimension * dimension);
+    auto temporary =create(dimension * dimension);
 
     size_t row = dimension;
     size_t column = dimension;
@@ -162,7 +178,7 @@ void doolittle(size_t dimension, double* matrix, double* vector)
 //  the scalar function, asf function in the article
 double scale(size_t position, size_t dimension, const double * objective)
 {
-    auto weights = create<double>(dimension);
+    auto weights = create(dimension);
     weights[position] = 1;
 
     math::div(dimension, objective, weights.get(), weights.get());
@@ -172,7 +188,7 @@ double scale(size_t position, size_t dimension, const double * objective)
 //  compute the perpendicular distance between the objective of an individual and the reference point
 double distance(size_t length, const double * point, const double * objective)
 {
-    auto temporary = create<double>(length);
+    auto temporary =create(length);
     math::copy(length, point, 1, temporary.get(), 1);
 
     double fraction = -math::dot(length, point, 1, objective, 1) / math::dot(length, point, 1, point, 1);
@@ -180,13 +196,13 @@ double distance(size_t length, const double * point, const double * objective)
     return std::sqrt(math::dot(length, temporary.get(), 1, temporary.get(), 1));
 }
 
-double* ideal(double* point, size_t scale, size_t dimension, const Series& individuals)
+double* ideal(double* point, size_t scale, size_t dimension, const std::list<Individual*>& individuals)
 {
     std::fill(point, point + dimension, double(+INFINITY));
 
     for (const auto& individual : individuals)
     {
-        for (auto pos = point, loc = individual.first; pos != point + dimension; ++pos, ++loc)
+        for (auto pos = point, loc = individual->objectives; pos != point + dimension; ++pos, ++loc)
         {
             *pos = std::min(*pos, *loc);
         }
@@ -195,25 +211,26 @@ double* ideal(double* point, size_t scale, size_t dimension, const Series& indiv
     return point;
 }
 
-double* interception(double* values, const double * ideal, size_t scale, size_t dimension, const Series& individuals)
+double* interception(double* values, const double * ideal, size_t scale, size_t dimension, const std::list<Individual*>& individuals)
 {
-    auto cost = std::unique_ptr<double[], decltype(&math::free<double>)>{ math::allocate<double>(dimension), math::free<double> };
-    auto matrix = std::unique_ptr<double[], decltype(&math::free<double>)>{ math::allocate<double>(dimension * dimension), math::free<double> };
-    
-    std::vector<std::pair<double, double*>> nearest(dimension, { double(+INFINITY), nullptr});
+    auto cost = create(dimension), max = create(dimension),  matrix = create(dimension * dimension);
+
+    std::vector<std::pair<double, double*>> nearest(dimension, { std::nan("0"), nullptr});
 
     for (auto& individual : individuals)
     {
-        math::sub(dimension, individual.first + scale, ideal, cost.get());
+        math::sub(dimension, individual->objectives, ideal, cost.get());
 
         for (size_t axis = 0;  axis < dimension; ++axis)
         {
+            max[axis] = std::max(cost[axis], max[axis]);
+
             double distance = ::scale(axis, dimension, cost.get());
 
-            if (distance < nearest[axis].first)
+            if (std::isnan(nearest[axis].first) || (distance < nearest[axis].first))
             {
                 nearest[axis].first = distance;
-                nearest[axis].second = individual.first;
+                nearest[axis].second = individual->objectives;
             }
         }
     }
@@ -225,6 +242,12 @@ double* interception(double* values, const double * ideal, size_t scale, size_t 
     }
 
     doolittle(dimension, matrix.get(), values);
+
+    for (auto value = values; value != values + dimension; ++value)
+    {
+        *value = std::isnan(*values) ? max[value - values] : *value;
+    }
+
     return values;
 }
 
@@ -236,59 +259,48 @@ double* normalize(size_t dimension, double* objectives, const double* ideal, con
 }
 
 //  attach the individual in the elite set to the reference plain
-void attach(size_t dimension, Individual individual, const double *cost, Association &associations)
+void attach(size_t dimension, Individual* individual, const double *cost, Association &associations)
 {
-    std::pair<double, size_t*> nearest = { +INFINITY, nullptr };
-
-    for(auto& [point, association] : associations)
-    {
-        double distance = ::distance(dimension, point, cost);
-
-        if (distance < nearest.first)
+    auto compare = [dimension, individual, cost](
+        const std::tuple<Pointer, size_t, std::list<Individual*>>& lhs,
+        const std::tuple<Pointer, size_t, std::list<Individual*>>& rhs)
         {
-            nearest.first = distance;
-            nearest.second = &association.first;
-        }
-    }
-
-    (*nearest.second) += 1;
+            return distance(dimension, std::get<0>(lhs).get(), cost) < distance(dimension, std::get<0>(rhs).get(), cost);
+        };
+    associations.sort(compare);
+    std::get<1>(*associations.begin()) += 1;
 }
 
 //  attach the individual in the critical set to the reference plain
-void associate(size_t dimension, Individual individual, const double *cost, Association &associations)
+void associate(size_t dimension, Individual* individual, const double *cost, Association &associations)
 {
-    std::pair<double, std::list<Individual>*> nearest = { +INFINITY, nullptr };
-
-    for(auto& [point, association] : associations)
-    {
-        double distance = ::distance(dimension, point, cost);
-
-        if (distance < nearest.first)
+    auto compare = [dimension, individual, cost](
+        const std::tuple<Pointer, size_t, std::list<Individual*>> &lhs,
+        const std::tuple<Pointer, size_t, std::list<Individual*>>& rhs)
         {
-            nearest.first = distance;
-            nearest.second = &association.second;
-        }
-    }
+            return distance(dimension, std::get<0>(lhs).get(), cost) < distance(dimension, std::get<0>(rhs).get(), cost);
+        };
 
-    nearest.second->push_back(individual);
+    associations.sort(compare);
+    std::get<2>(*associations.begin()).push_back(individual);
 }
 
-void Reference::dispense(size_t needed, Series& elites, Series& criticals)
+void Reference::dispense(size_t needed, std::list<Individual*>& elites, std::list<Individual*>& criticals)
 {
     ideal(ideal_.get(), scale_, dimension_, elites);
     interception(interception_.get(), ideal_.get(), scale_, dimension_, elites);
 
-    auto cost = Pointer<double>{ math::allocate<double>(dimension_), math::free<double> };
+    auto cost = create(dimension_);
 
-    for (auto& elite : elites)
+    for (const auto& elite : elites)
     {
-        math::copy<double>(dimension_, elite.first + scale_, 1, cost.get(), 1);
+        math::copy(dimension_, elite->objectives, 1, cost.get(), 1);
         attach(dimension_, elite, normalize(dimension_, cost.get(), ideal_.get(), interception_.get()), associations_);
     }
 
     for(auto& individual : criticals)
     {
-        math::copy(dimension_, individual.first + scale_, 1, cost.get(), 1);
+        math::copy(dimension_, individual->objectives, 1, cost.get(), 1);
         associate(dimension_, individual, normalize(dimension_, cost.get(), ideal_.get(), interception_.get()), associations_);
     }
     criticals.clear();
@@ -299,11 +311,11 @@ void Reference::dispense(size_t needed, Series& elites, Series& criticals)
 
             for(auto iter = associations.begin(); iter != associations.end(); ++iter)
             {
-                if(iter->second.second.empty()) { continue; }
+                if(std::get<2>(*iter).empty()) { continue; }
 
-                if(min->second.second.empty()) { min = iter; continue; }
+                if(std::get<2>(*min).empty()) { min = iter; continue; }
 
-                if(iter->second.first < min->second.first) { min = iter; continue; }
+                if(std::get<1>(*iter) < std::get<1>(*min)) { min = iter; continue; }
             }
 
             return min;
@@ -311,7 +323,7 @@ void Reference::dispense(size_t needed, Series& elites, Series& criticals)
 
     while (needed-- != 0)
     {
-        auto& [count, associated] = sort(associations_)->second;
+        auto& [point, count, associated] = *sort(associations_);
 
         elites.push_back(*associated.begin());
         associated.pop_front();
@@ -319,28 +331,31 @@ void Reference::dispense(size_t needed, Series& elites, Series& criticals)
         count++;
     }
 
-    for (auto& [point, association] : associations_)
+    for (auto& [point, count, associated] : associations_)
     {
-        association.first = 0;
-        criticals.splice(criticals.end(), association.second);
+        count = 0;
+        criticals.splice(criticals.end(), associated);
     }
 }
 
-std::pair<Series, Series> Reference::select(Series&& population)
+std::pair<std::list<Individual*>, std::list<Individual*>> Reference::select(const std::list<Individual*>& population)
 {
-    auto layers = sort(std::forward<Series>(population));
-    auto results = std::make_pair<>(std::move(*layers.begin()), Series());
+    auto layers = sort(population);
+    auto results = std::make_pair<>(std::move(*layers.begin()), std::list<Individual*>());
     auto& [elite, ordinary] = results;
 
 //  move the better individuals into the solution set
-    while(elite.size() + layers.begin()->size() < selection_)
+    while(elite.size() + layers.begin()->size() <= selection_)
     {
         elite.splice(elite.end(), *layers.begin());
         layers.pop_front();
     }
 
-//  size judge contained in the dispense function
-    if(selection_ > elite.size() )
+    if (elite.size() > selection_)
+    {
+        ordinary.splice(ordinary.end(), elite, std::next(elite.begin(), selection_), elite.end());
+    }
+    else if(selection_ > elite.size())
     {
         dispense(selection_ - elite.size(), elite, *layers.begin());
     }
@@ -381,22 +396,21 @@ std::list<std::list<double>> permutation(size_t dimension, size_t division)
     return results;
 }
 
-Reference::Reference(math::Optimizor::Configuration& configuration) :
+Reference::Reference(const math::Optimizor::Configuration& configuration) :
     scale_(std::get<size_t>(configuration["scale"])),
     dimension_(std::get<size_t>(configuration["dimension"])),
+    constraint_(std::get<size_t>(configuration["constraint"])),
     selection_(std::get<size_t>(configuration["population"]) / 2),
-    ideal_(create<double>(dimension_)), interception_(create<double>(dimension_))
+    ideal_(create(dimension_)), interception_(create(dimension_))
 {
     size_t division = std::get<size_t>(configuration["division"]);
 
     for (const auto& point : permutation(dimension_, division))
     {
-        points_.push_back(create<double>(dimension_));
-        auto pointer = points_.rbegin()->get();
+        associations_.push_back(std::make_tuple<Pointer, size_t, std::list<Individual*>>(create(dimension_),  0, {}));
+        auto& [pointer, count, list] = *associations_.rbegin();
 
-        std::copy(point.begin(), point.end(), pointer);
-        math::scal(dimension_, 1.0 / division, pointer, 1);
-
-        associations_.insert(associations_.end(), { pointer, { 0, {} }});
+        std::copy(point.begin(), point.end(), pointer.get());
+        math::scal(dimension_, 1.0 / division, pointer.get(), 1);
     }
 }

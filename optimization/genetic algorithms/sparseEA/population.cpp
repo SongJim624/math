@@ -1,4 +1,4 @@
-#include "sparseea.h"
+#include "sparseEA.h"
 
 void generate(size_t scale, double *decisions, double *upper, double *lower, double *integer)
 {
@@ -14,79 +14,23 @@ void generate(size_t scale, double *decisions, double *upper, double *lower, dou
     }
 }
 
-/******************************************************************************
-* compute the importance (fitness of the decision variables in the article)
-*********************************************************************************/
-
-void Population::importances(double* decisions, math::Optimizor::Objective& function)
+Evolutionary::Selector<Individual>& Population::selector()
 {
-    Series individuals(scale_);
-    std::list<Pointer<double>> pointers;
-
-    for (auto individual = individuals.begin(); individual != individuals.end(); ++individual)
-    {
-        pointers.push_back(create<double>(scale_ + dimension_ + constraint_));
-
-        auto pointer = pointers.rbegin()->get();
-        size_t pos = std::distance(individuals.begin(), individual);
-        pointer[pos] = *decisions++;
-
-        function(pointer, pointer + scale_, pointer + scale_ + dimension_);
-
-        individual->first = pointer;
-        individual->second = nullptr;
-    }
-
-//    auto copy = individuals;
-    auto layers = selector_->sort(std::forward<Series>(individuals));
-
-    for (auto layer = layers.begin(); layer != layers.end(); ++layer)
-    {
-        size_t index = std::distance(layers.begin(), layer);
-        (*importances_).insert({ index, {} });
-
-        for (const auto& individual : *layer)
-        {
-            auto pos = std::find(individuals.begin(), individuals.end(), individual);
-            (*importances_)[index].push_back(std::distance(layers.begin(), layer));
-        }
-    }
+    return *selector_;
 }
 
-/******************************************************************************
-* constructors of the population
-*********************************************************************************/
-
-void mask(size_t length, const std::map<size_t, std::list<size_t>>& importances, size_t* masks)
+Evolutionary::Reproducor<Individual>& Population::reproducor()
 {
-    std::list<size_t> indicies;
-
-    for (const auto& [importance, list] : importances)
-    {
-        if (indicies.size() + list.size() < length)
-        {
-            indicies.insert(indicies.end(), list.begin(), list.end());
-        }
-        else
-        {
-            indicies.insert(indicies.end(), list.begin(), std::next(list.begin(), length - indicies.size()));
-            break;
-        }
-    }
-
-    for (const auto& index : indicies)
-    {
-        masks[index] = 1;
-    }
+    return *reproducor_;
 }
 
 Population::Population(math::Optimizor::Configuration& configuration) :
     scale(std::get<size_t>(configuration["scale"])),
     dimension(std::get<size_t>(configuration["dimension"])),
     constraint(std::get<size_t>(configuration["constraint"])),
-    importances(std::make_shared<std::map<size_t, std::list<size_t>>>()),
+    importances(new size_t[scale]),
     selector_(std::make_unique<Reference>(configuration)), 
-    reproducor_(std::make_unique<Reproducor>(importances_, configuration))
+    reproducor_(nullptr)
 {
     size_t population = std::get<size_t>(configuration["population"]);
 
@@ -98,7 +42,7 @@ Population::Population(math::Optimizor::Configuration& configuration) :
 
     try
     {
-        initials = std::get<std::vector<std::vector<double>>>(configuration["initials"]);
+        initials = std::get<std::vector<std::vector<double>>>(configuration["initial"]);
     }
     catch(...)
     {
@@ -108,34 +52,87 @@ Population::Population(math::Optimizor::Configuration& configuration) :
     std::mt19937_64 generator(seed());
     std::uniform_real_distribution<double> uniform(0, 1);
 
-//  fill the initial population to the full size
-    while(initials.size() != population)
+    individuals.resize(scale);
+    std::generate(individuals.begin(), individuals.end(), [this]() { return new Individual(scale, dimension, constraint); });
+
+//  make sure that the population size is larger than the scale
+    auto temporary = create(scale);
+    for(auto individual = individuals.begin(); individual != std::next(individuals.begin(), scale); ++individual)
     {
-        std::vector<double> decisions(scale_);
+        auto masks = (*individual)->masks;
+        auto decisions = (*individual)->decisions;
+        auto objectives = (*individual)->objectives;
+        auto voilations = (*individual)->voilations;
 
-        for(auto& decision : decisions)
-        {
-            decision = uniform(generator);
-        }
+        masks[std::distance(individuals.begin(), individual)] = 1;
+        std::generate(decisions, decisions + scale, [&uniform, &generator]() { return uniform(generator); });
+        generate(scale, decisions, &upper[0], &lower[0], &integer[0]);
 
-        generate(dimension_, &decisions[0], &upper[0], &lower[0], &integer[0]);
-        initials.push_back(std::move(decisions));
+        math::mul(scale, decisions, masks, temporary.get());
+        (*configuration.objective)(temporary.get(), objectives, voilations);
     }
 
-//  determine the fitness of each decision variable
-    importances(&(*initials.rbegin())[0], *configuration.objective);
-
-    for(const auto& decisions : initials)
+    auto layers = selector_->sort(individuals);
+    for(auto layer = layers.begin(); layer != layers.end(); ++layer)
     {
-        population_.push_back(create<double>(scale_ + dimension_ + constraint_));
-        masks_.push_back(create<size_t>(scale_));
+        for(const auto& individual : *layer)
+        {
+            for(size_t i = 0; i < scale; ++i)
+            {
+                if(individual->masks[i])
+                {
+                    importances[i] = std::distance(layers.begin(), layer);
+                }
+            }
+        }
+    }
+    reproducor_ = std::make_unique<Reproducor>(configuration, importances);
 
-        auto&& individual = std::make_pair<>(population_.rbegin()->get(), masks_.rbegin()->get());
+    individuals.resize(population);
+    std::generate(std::next(individuals.begin(), scale), individuals.end(), [this]() { return new Individual(scale, dimension, constraint); });
+    auto initial = initials.begin();
+    for(auto individual = std::next(individuals.begin(), scale); individual != individuals.end(); ++individual)
+    {
+        auto masks = (*individual)->masks;
+        auto decisions = (*individual)->decisions;
+        auto objectives = (*individual)->objectives;
+        auto voilations = (*individual)->voilations;
 
-        math::copy(scale_, &decisions[0], 1, individual.first, 1);
-        mask(std::floor(scale_ * 1 * uniform(generator)), *importances_, individual.second);
+    //  generate the decision variables
+        if(initial == initials.end())
+        {
+            std::generate(decisions, decisions + scale, [&uniform, &generator]() { return uniform(generator); });
+            generate(scale, decisions, &upper[0], &lower[0], &integer[0]);
+        }
+        else
+        {
+            math::copy(scale, &(*initial)[0], 1, decisions, 1);
+            initial++;
+        }
 
-        evaluation(scale_, dimension_, *configuration.objective, individual);
-        individuals_.push_back(individual);
+    //  generate the masks
+        size_t amount = std::uniform_int_distribution<>(0, scale - 1)(generator);
+        for(size_t i = 0; i < amount; ++i)
+        {
+            size_t first = std::uniform_int_distribution<>(0, scale - 1)(generator);
+            size_t second = std::uniform_int_distribution<>(0, scale - 1)(generator);
+            
+            masks[importances[first] < importances[second] ? first : second] = 1;
+        }
+
+        math::mul(scale, decisions, masks, temporary.get());
+        (*configuration.objective)(temporary.get(), objectives, voilations);
+    }
+}
+
+Population::~Population()
+{
+    delete[] importances;
+    importances = nullptr;
+
+    for(auto& individual : individuals)
+    {
+        delete individual;
+        individual = nullptr;
     }
 }

@@ -1,127 +1,178 @@
-#include "sparseea.h"
-// simulated binary cross over function for the decisions
-void cross(double exponent, size_t scale, double *randoms, const double* father, const double* mother, double* son, double* daughter)
+#include "sparseEA.h"
+
+void check(size_t scale, Individual& individual, const double* uppers, const double* lowers, const double* integers)
 {
+    for(size_t i = 0;i < scale; ++i)
+    {
+        individual.decisions[i] = integers[i] ? std::round(individual.decisions[i]) : individual.decisions[i];
+        individual.decisions[i] = std::max(std::min(individual.decisions[i], uppers[i]), lowers[i]);
+    }
+}
+
+//  simulate binary crossover for the decision variables
+void cross(size_t scale, double exponent, std::mt19937_64& generator, std::array<const Individual*, 2> parents, std::array<Individual*, 2> children, const double * uppers, const double* lowers, const double* integers)
+{
+    const auto &father = *parents[0], &mother = *parents[1];
+    auto &son = *children[0], &daughter = * children[1];
+
+    auto randoms = create(scale);
+    std::generate(randoms.get(), randoms.get() + scale, [&generator](){ return std::uniform_real_distribution<>(0.0, 1.0)(generator); });
+
     auto temporary = create(scale);
-    for (auto r = randoms; r != randoms + scale; ++r)
+
+    for(auto r = randoms.get(); r < randoms.get() + scale; ++r)
     {
         *r = (*r < 0.5) ? 2.0 * *r : 0.5 / (1.0 - *r);
     }
 
     double probability = 1 / (exponent + 1);
-    math::powI(scale, randoms, 1, &probability, 0, randoms, 1);
+    math::powI(scale, randoms.get(), 1, &probability, 0, randoms.get(), 1);
 
-    math::sub(scale, father, mother, temporary.get());
-    math::mul(scale, randoms, temporary.get(), temporary.get());
+    math::sub(scale, father.decisions, mother.decisions, temporary.get());
+    math::mul(scale, randoms.get(), temporary.get(), temporary.get());
 
-    math::add(scale, father, mother, son);
-    math::sub(scale, son, temporary.get(), son);
-    math::scal(scale, 0.5, son, 1);
+    math::add(scale, father.decisions, mother.decisions, son.decisions);
+    math::sub(scale, son.decisions, temporary.get(), son.decisions);
+    math::scal(scale, 0.5, son.decisions, 1);
 
-    math::add(scale, father, mother, daughter);
-    math::add(scale, daughter, temporary.get(), daughter);
-    math::scal(scale, 0.5, daughter, 1);
+    math::add(scale, father.decisions, mother.decisions, daughter.decisions);
+    math::add(scale, daughter.decisions, temporary.get(), daughter.decisions);
+    math::scal(scale, 0.5, daughter.decisions, 1);
+
+    check(scale, son, uppers, lowers, integers);
+    check(scale, daughter, uppers, lowers, integers);
 }
-
-//  polynomial mutation
-void mutate(double exponent, size_t scale, double * randoms, double* individual, double *upper, double * lower)
+//  polynomial mutation for decision variables
+void mutate(size_t scale, double exponent, std::mt19937_64& generator, Individual& individual, const double* uppers, const double* lowers, const double* integers)
 {
+    auto randoms = create(scale);
+    std::generate(randoms.get(), randoms.get() + scale, [&generator]() { return std::uniform_real_distribution<>(0.0, 1.0)(generator); });
+
     for (size_t i = 0; i < scale; ++i)
     {
-        double weight = ((randoms[i] < 0.5) ? (upper[i] - individual[i]) : (individual[i] - lower[i])) / (upper[i] - lower[i]);
+        double weight = ((randoms[i] < 0.5) ? (uppers[i] - individual.decisions[i]) : (individual.decisions[i] - lowers[i])) / (uppers[i] - lowers[i]);
 
         double base = std::min(randoms[i], 1 - randoms[i]);
         base = std::pow(2 * base + (1 - 2 * base) * std::pow(weight, exponent + 1), 1.0 / (exponent + 1.0));
 
-        individual[i] += randoms[i] < 0.5 ? base - 1 : 1 - base;
+        individual.decisions[i] += randoms[i] <  0.5 ? base - 1 : 1 - base;
+    }
+
+    check(scale, individual, uppers, lowers, integers);
+}
+
+void flip(size_t scale, double random, std::mt19937_64& generator, double * individual, const double* masks, const size_t*importances)
+{
+    std::vector<size_t> selections(0);
+
+    size_t count = 0;
+    for (size_t i = 0; i < scale; ++i)
+    {
+        count += (masks[i] == 0);
+    }
+
+    while(selections.size() != scale - count)
+    {
+        size_t selection = std::uniform_int_distribution<>(0, scale - 1)(generator);
+        masks[selection] ? selections.push_back(selection) : void();
+    }
+
+    switch (selections.size())
+    {
+    case 0:
+    {
+        return;
+    }
+    case 1:
+    {
+        individual[selections[0]] = 1 - individual[selections[0]];
+        return;
+    }
+    default:
+    {
+        size_t selection = (random > 0.5) - (importances[selections[0]] < importances[selections[1]]);
+        individual[selection] = 1 - individual[selection];
+        return;
+    }
     }
 }
 
-
-//  cross over function for the masks
-void cross(size_t scale, double* randoms, const double* father, const double* mother, double* son, double* daughter, size_t* importances)
+void cross(size_t scale, std::mt19937_64& generator, std::array<const Individual*, 2> parents, std::array<Individual*, 2> children, const size_t* importances)
 {
-    auto temporary = create(scale);
     double one = 1;
+    auto masks = create(scale);
 
-    if(randoms[0] < 0.5)
+    for(auto& child : children)
     {
-        math::subI(scale, &one, 1, randoms[0] < 0.5 ? mother : father, 1, temporary.get(), 1);
-    }
-    else
-    {
-    }
+        math::copy(scale, parents[0]->masks, 1, child->masks, 1);
 
+        double random = std::uniform_real_distribution<>(0.0, 1.0)(generator);
+        math::subI(scale, &one, 0, parents[random < 0.5]->masks, 1, masks.get(), 1);
+        math::addI(scale, parents[random > 0.5]->masks, 1, masks.get(), 1, masks.get(), 1);
+
+        flip(scale, random < 0.5, generator, child->masks, masks.get(), importances);
+    }
+}
+
+void mutate(size_t scale, std::mt19937_64& generator, Individual& individual, const size_t* importances)
+{
+    auto masks = create(scale);
+    double one = 1.0, random = std::uniform_real_distribution<>(0.0, 1.0)(generator);
+    random < 0.5 ? math::copy<double>(scale, individual.masks, 1, masks.get(), 1) : math::subI(scale, &one, 0, individual.masks, 1, masks.get(), 1);
+    flip(scale, random < 0.5, generator, individual.masks, masks.get(), importances);
 }
 
 //  simulated binary crossover
-void Reproducor::cross(const Individual parents[2], Individual children[2])
+void Reproducor::cross(const Individual& father, const Individual& mother, Individual& son, Individual& daughter)
 {
-    auto randoms = create<double>(scale_);
-
-    for (auto r = randoms.get(); r < randoms.get() + scale_; ++r)
-    {
-        *r = uniform_(generator_);
-    }
-
-    double* decisions[4] = { parents[0].first, parents[1].first, children[0].first, children[1].first };
-    ::cross(cross_, scale_, randoms.get(), decisions, decisions + 2);
-
-    size_t* masks[4] = { parents[0].second, parents[1].second, children[0].second, children[1].second };
-    ::cross(cross_, scale_, randoms.get(), masks, masks + 2);
+//  cross the masks
+    ::cross(scale_, generator_, { &father, &mother },  { &son, &daughter }, importances_);
+//  cross the decisions
+    ::cross(scale_, cross_, generator_, { &father, &mother }, { &son, &daughter }, upper_.get(), lower_.get(), integer_.get());
 }
 
-void Reproducor::mutate(Individual individual)
+void Reproducor::mutate(Individual& individual)
 {
-    auto randoms = create<double>(scale_);
-
-    for (auto r = randoms.get(); r < randoms.get() + scale_; ++r)
-    {
-        *r = uniform_(generator_);
-    }
-
-    ::mutate(mutation_, scale_, randoms.get(), individual.first, upper_.get(), lower_.get());
+//  mutate the masks
+    ::mutate(scale_, generator_, individual, importances_);
+//  mutate the decision variables
+    ::mutate(scale_, mutation_, generator_, individual, upper_.get(), lower_.get(), integer_.get());
 }
 
-void Reproducor::check(Individual individual)
+void Reproducor::check(Individual& individual)
 {
-    for(auto value = individual.first, upper = upper_.get(), lower = lower_.get(), integer = integer_.get();
-        value != individual.first + scale_; ++value, ++upper, ++lower, ++integer)
-    {
-		*value = std::max(std::min(*value, *upper), *lower);
-        *value = *integer ? std::round(*value) : *value;
-    }
+    assert((void("not implemented!"), true));
 }
 
-Series Reproducor::reproduce(std::pair<Series, Series>&& population)
+std::list<Individual*> Reproducor::reproduce(std::pair<std::list<Individual*>, std::list<Individual*>>&& population)
 {
+    auto temporary = create(scale_);
     auto& [elites, ordinaries] = population;
-    Series offsprings = {};
+
+    std::list<Individual*> offsprings = {};
 
 //  by this way, elites will not be more than ordinaries
     if (elites.size() % 2)
     {
-        ordinaries.push_front(std::move(*elites.rbegin()));
+        ordinaries.push_front(*elites.rbegin());
         elites.pop_back();
     }
 
+    ordinaries.reverse();
     for(auto iter = elites.begin(); iter != elites.end() && !ordinaries.empty(); iter = std::next(iter, 2))
     {
-        Individual parents[2] = { *iter, *std::next(iter) };
-        Individual children[2] = { *ordinaries.rbegin(), *std::next(ordinaries.rbegin()) };
+        cross(**iter, **std::next(iter), **ordinaries.begin(), **std::next(ordinaries.begin()));
 
-        cross(parents, children);
-
-        for (auto& individual : children)
+        for (size_t i = 0; i < 2;  ++i)
         {
-            uniform_(generator_) > threshold_ ? mutate(individual) : void();
-            check(individual);
-            evaluation(scale_, dimension_, *function_, individual);
+            auto& child = **std::next(ordinaries.begin(), i);
+            std::uniform_real_distribution<>(0.0, 1.0)(generator_) > threshold_ ? mutate(child) : void();
+
+            math::mul(scale_, child.decisions, child.masks, temporary.get());
+            (*function_)(temporary.get(), child.objectives, child.voilations);
         }
 
-        offsprings.insert(offsprings.end(), children, children + 2);
-        ordinaries.pop_back();
-        ordinaries.pop_back();
+        offsprings.splice(offsprings.end(), ordinaries, ordinaries.begin(), std::next(ordinaries.begin(), 2));
     }
 
     elites.splice(elites.end(), offsprings);
@@ -129,11 +180,11 @@ Series Reproducor::reproduce(std::pair<Series, Series>&& population)
     return elites;
 }
 
-Reproducor::Reproducor(std::shared_ptr<std::map<size_t, std::list<size_t>>> importances, math::Optimizor::Configuration& configuration) :
+Reproducor::Reproducor(math::Optimizor::Configuration& configuration, size_t *importances) :
     scale_(std::get<size_t>(configuration["scale"])), dimension_(std::get<size_t>(configuration["dimension"])),
     cross_(std::get<double>(configuration["cross"])), mutation_(std::get<double>(configuration["mutation"])), threshold_(0.8),
-    upper_(create<double>(scale_)), lower_(create<double>(scale_)), integer_(create<double>(scale_)),
-    function_(configuration.objective.get()), generator_(std::random_device()()), uniform_(0, 1)
+    upper_(create(scale_)), lower_(create(scale_)), integer_(create(scale_)),
+    function_(configuration.objective.get()), generator_(std::random_device()()), importances_(importances)
 {
     for(auto& [name, pointer] :
         std::map<std::string, double*>{ { "upper", upper_.get() }, { "lower", lower_.get() }, { "integer", integer_.get() } })
@@ -141,4 +192,10 @@ Reproducor::Reproducor(std::shared_ptr<std::map<size_t, std::list<size_t>>> impo
         const auto& value = std::get<std::vector<double>>(configuration[name]);
         std::copy(value.begin(), value.end(), pointer);
     }
+}
+
+Reproducor::~Reproducor()
+{
+    importances_ = nullptr;
+    function_ = nullptr;
 }
