@@ -1,5 +1,10 @@
 #include "unsga.h"
 
+extern "C" __declspec(dllexport) void* __cdecl construct()
+{
+	return new UNSGA();
+}
+
 Pointer create(size_t length)
 {
     return Pointer(math::allocate<double>(length), math::free<double>);

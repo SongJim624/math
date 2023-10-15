@@ -1,5 +1,10 @@
 #include "sparseEA.h"
 
+extern "C" __declspec(dllexport) void* __cdecl construct()
+{
+	return new SparseEA();
+}
+
 Pointer create(size_t length)
 {
 	return Pointer(math::allocate<double>(length), math::free<double>);

@@ -120,4 +120,6 @@ protected:
 public:
 	virtual ~SparseEA() {}
 };
+
+extern "C" __declspec(dllexport) void* __cdecl construct();
 #endif //!_math_optimization_evolutionary_sparseEA_

@@ -113,4 +113,6 @@ protected:
 public:
 	virtual ~UNSGA() {}
 };
+
+extern "C" __declspec(dllexport) void* __cdecl construct();
 #endif //!_MATH_OPTIMIZATION_UNSGA_
