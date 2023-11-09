@@ -30,6 +30,7 @@ namespace math
 	{
 	public:
 		virtual void write(const char* path) = 0;
+		virtual std::list<const double*> results() const = 0;
 		virtual ~Result() {};
 	};
 

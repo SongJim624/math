@@ -129,7 +129,7 @@ void doolittle(size_t dimension, double* matrix, double* vector)
             double sum = 0;
             for (size_t t = 0; t < k; ++t)
             {
-                sum += temporary[k * column + t] * temporary[t * column + c];
+                sum += temporary[k * column + t] * temporary[pointer<T>& column + c];
             }
 
             temporary[k * column + c] = matrix[k * column + c] - sum;
@@ -141,7 +141,7 @@ void doolittle(size_t dimension, double* matrix, double* vector)
             double sum = 0;
             for (size_t t = 0; t < k; ++t)
             {
-                sum += temporary[r * column + t] * temporary[t * column + k];
+                sum += temporary[r * column + t] * temporary[pointer<T>& column + k];
             }
 
             temporary[r * column + k] = (matrix[r * column + k] - sum) / temporary[k * column + k];

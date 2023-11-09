@@ -5,36 +5,36 @@
 #include <algorithm>
 #include <functional>
 #include <numeric>
+#include <memory>
 
 #ifndef _MATH_BLAS_
 #define _MATH_BLAS_
 namespace math
 {
     template<typename T>
-    T* allocate(size_t length)
+    using pointer = std::unique_ptr<T[], decltype(&std::free)>;
+
+    template<typename T>
+    pointer<T> allocate(size_t length)
     {
-        return reinterpret_cast<T*>(std::calloc(length, sizeof(T)));
+        return std::unique_ptr<T[], decltype(&std::free)>(std::calloc(length, sizeof(T), std::free);
     }
 
     template<typename T>
-    void free(T* pointer)
+    void copy(size_t length, const pointer<T>&source, size_t sinc, pointer<T>&destination, size_t dinc)
     {
-        std::free(pointer);
-    }
+        std::pair<T*, T*> address = { source.get(), destination.get() };
 
-    template<typename T>
-    void copy(size_t length, const T *source, size_t step, T *destination, size_t increment)
-    {
         for (size_t i = 0; i < length; ++i)
         {
-            *destination = *source;
-            source += step;
-            destination += increment;
+            *address.second = *address.first;
+            *address.first += step;
+            *address.second += increment;
         }
     }
 
     template<typename T>
-    void operation(size_t length, std::array<const T*, 2> ptr, T * res, std::array<size_t, 3> inc, std::function<T(T, T)> opr)
+    void operation(size_t length, std::array<const T*, 2> ptr, pointer<T>& res, std::array<size_t, 3> inc, std::function<T(T, T)> opr)
     {
         for (size_t i = 0; i < length; ++i)
         {
@@ -48,10 +48,10 @@ namespace math
 }
 
 //  add
-namespace manth
+namespace math
 {
     template<typename T>
-    void add(size_t length, const T *left, const T *right, T *results)
+    void add(size_t length, const pointer<T>&left, const pointer<T>&right, pointer<T>&results)
     {
         operation(length, { left, right }, results, { 1, 1, 1 }, [](T l, T r) {return l + r; });
     }
@@ -67,7 +67,7 @@ namespace manth
 namespace math
 {
     template<typename T>
-    void sub(size_t length, const T *left, const T *right, T *results)
+    void sub(size_t length, const pointer<T>&left, const pointer<T>&right, pointer<T>&results)
     {
         operation(length, { left, right }, results, { 1, 1, 1 }, [](T l, T r) {return l - r; });
     }
@@ -83,7 +83,7 @@ namespace math
 namespace math
 {
     template<typename T>
-    void mul(size_t length, const T *left, const T *right, T *results)
+    void mul(size_t length, const pointer<T>&left, const pointer<T>&right, pointer<T>&results)
     {
         operation(length, { left, right }, results, { 1, 1, 1 }, [](T l, T r) {return l * r; });
     }
@@ -99,7 +99,7 @@ namespace math
 namespace math
 {
     template<typename T>
-    void div(size_t length, const T *left, const T *right, T *results)
+    void div(size_t length, const pointer<T>&left, const pointer<T>&right, pointer<T>&results)
     {
         operation(length, { left, right }, results, { 1, 1, 1 }, [](T l, T r) {return l / r; });
     }
