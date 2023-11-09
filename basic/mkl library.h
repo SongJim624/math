@@ -1,4 +1,6 @@
+#ifdef __INTEL_MKL__
 #include <mkl.h>
+#endif
 
 #include <array>
 #include <cmath>
@@ -7,38 +9,57 @@
 #include <algorithm>
 #include <functional>
 #include <numeric>
+#include <utility>
 
 #ifndef _MATH_BLAS_
 #define _MATH_BLAS_
+//  allocator of array
 namespace math
 {
+#if defined __INTEL_MKL__
     template<typename T>
-    T* allocate(size_t length)
-    {
-        return reinterpret_cast<T*>(mkl_calloc(length, sizeof(T), 64));
-    }
+    using matrix = std::unique_ptr<T[], deltype(&mkl_free)>;
 
     template<typename T>
-    void free(T* pointer)
+    matrix<T> allocate(size_t size)
     {
-        mkl_free(pointer);
+        return pointer<T>(mkl_calloc(size, sizeof(T), 64), mkl_free);
     }
+#else
+    template<typename T>
+    using matrix = std::unique_ptr<T[], decltype(&std::free)>;
 
     template<typename T>
-    void copy(size_t length, const T *source, size_t step, T *destination, size_t increment)
+    matrix<T> allocate(size_t size)
     {
-        for (size_t i = 0; i < length; ++i)
+        return pointer<T>(mkl_calloc(size, sizeof(T), 64), mkl_free);
+    }
+#endif
+
+    template<typename T, typename ...Args>
+    void call(void* function, Args... args)
+    {
+        (*reinterpret_cast<T*>(function))(std::forward<Args>(args)...);
+    }
+};
+
+//  copy fucntion
+namespace math
+{
+    template<typename T, typename wrapper = std::pair<T*, size_t>>
+    void copy(size_t length, const wrapper& source, wrapper destination)
+    {
+        for(size_t i = 0; i < length; ++i)
         {
-            *destination = *source;
-            source += step;
-            destination += increment;
+            *(destination.first + i * destination.second) = *(source.first + i * source.second)
         }
     }
 
+//#ifdef  __INTEL_MKL__
     template<>
-    void copy<double>(size_t length, const T *source, size_t step, T *destination, size_t increment)
+    void copy<double>(size_t length, const std::pair<double, size_t>& source, std::pair<double, size_t> destination)
     {
-        mkl_dcopy(length, source, step, destination, increment);
+        call<decltype(&mkl_dcopy)>(length, source.first, source.second, destination.first, destination.second);
     }
 
     template<>
@@ -46,6 +67,7 @@ namespace math
     {
         mkl_scopy(length, source, step, destination, increment);
     }
+//#endif
 
     template<typename T>
     void operation(size_t length, std::array<const T*, 2> ptr, T * res, std::array<size_t, 3> inc, std::function<T(T, T)> opr)
@@ -62,30 +84,35 @@ namespace math
 }
 
 //  add
-namespace manth
+namespace math
 {
+    template<typename T>
+    void add(size_t length, const std::pair<T*, size_t>& const std::pair<T*, size_t>&)
+
+
     template<typename T>
     void add(size_t length, const T *left, const T *right, T *results)
     {
         operation(length, { left, right }, results, { 1, 1, 1 }, [](T l, T r) {return l + r; });
     }
 
+    template<typename T>
+    void add(size_t length, const T* left, size_t linc, const T* right, size_t rinc, T* results, size_t inc)
+    {
+        operation(length, { left, right }, results, { linc, rinc, inc }, [](T l, T r) {return l + r; });
+    }
+
+#ifdef __INTEL_MKL__
     template<>
-    void add<double>(size_t length, const T *left, const T *right, T *results)
+    void add<double>(size_t length, const T* left, const T* right, T* results)
     {
         vdAdd(length, left, right, results);
     }
 
     template<>
-    void add<float>(size_t length, const T *left, const T *right, T *results)
+    void add<float>(size_t length, const T* left, const T* right, T* results)
     {
         vsAdd(length, left, right, results);
-    }
-
-    template<typename T>
-    void add(size_t length, const T* left, size_t linc, const T* right, size_t rinc, T* results, size_t inc)
-    {
-        operation(length, { left, right }, results, { linc, rinc, inc }, [](T l, T r) {return l + r; });
     }
 
     template<>
@@ -99,6 +126,7 @@ namespace manth
     {
         vsAddI(length, left, linc, right, rinc, results, inc);
     }
+#endif
 }
 
 //  substract
@@ -209,7 +237,10 @@ namespace math
     {
         operation(length, { left, right }, right, { linc, rinc, rinc }, [factor](T l, T r) { return l + factor * r; });
     }
+}
 
+namespace math
+{
     template<typename T>
     T dot(size_t length, const T* left, size_t linc, const T* right, size_t rinc)
     {
@@ -217,5 +248,20 @@ namespace math
         mulI<T>(length, left, linc, right, rinc, temporary.get(), 1);
         return std::accumulate(temporary.get(), temporary.get() + length, 0.0);
     }
+
+#ifdef __INTEL_MKL__
+    template<>
+    double dot<double>(size_t length, const double* left, size_t linc, const double* right, size_t rinc)
+    {
+        return cblas_ddot(length, left, linc, right, rinc);
+    }
+
+    template<>
+    float dot<float>(size_t length, const double* left, size_t linc, const double* right, size_t rinc)
+    {
+        return cblas_sdot(length, left, linc, right, rinc);
+    }
+
+#endif
 }
 #endif //! _MATH_BLAS_
