@@ -98,19 +98,19 @@ std::list<std::list<Individual*>> Reference::sort(const std::list<Individual*>& 
 /**************************************************************************
  *  elite reserve selection
  ***************************************************************/
-using Association = std::list<std::tuple<Pointer, size_t, std::list<Individual*>>>;
+using Association = std::list<std::tuple<math::pointer<double>, size_t, std::list<Individual*>>>;
 
 double dot(size_t length, const double* left, const double* right)
 {
-    auto temporary = create(length);
-    math::mul(length, left, right, temporary.get());
+    auto temporary = math::allocate<double>(length);
+    math::mul(length, left, 1, right, 1, temporary.get(), 1);
 
     return std::accumulate(temporary.get(), temporary.get() + length, 0);
 }
 
 void doolittle(size_t dimension, double* matrix, double* vector)
 {
-    auto temporary =create(dimension * dimension);
+    auto temporary = math::allocate<double>(dimension * dimension);
 
     size_t row = dimension;
     size_t column = dimension;
@@ -129,7 +129,7 @@ void doolittle(size_t dimension, double* matrix, double* vector)
             double sum = 0;
             for (size_t t = 0; t < k; ++t)
             {
-                sum += temporary[k * column + t] * temporary[pointer<T>& column + c];
+                sum += temporary[k * column + t] * temporary[t * column + c];
             }
 
             temporary[k * column + c] = matrix[k * column + c] - sum;
@@ -141,7 +141,7 @@ void doolittle(size_t dimension, double* matrix, double* vector)
             double sum = 0;
             for (size_t t = 0; t < k; ++t)
             {
-                sum += temporary[r * column + t] * temporary[pointer<T>& column + k];
+                sum += temporary[r * column + t] * temporary[t * column + k];
             }
 
             temporary[r * column + k] = (matrix[r * column + k] - sum) / temporary[k * column + k];
@@ -178,21 +178,21 @@ void doolittle(size_t dimension, double* matrix, double* vector)
 //  the scalar function, asf function in the article
 double scale(size_t position, size_t dimension, const double * objective)
 {
-    auto weights = create(dimension);
+    auto weights = math::allocate<double>(dimension);
     weights[position] = 1;
 
-    math::div(dimension, objective, weights.get(), weights.get());
+    math::div(dimension, objective, 1, weights.get(), 1, weights.get(), 1);
     return *std::max_element(weights.get(), weights.get() + dimension);
 }
 
 //  compute the perpendicular distance between the objective of an individual and the reference point
 double distance(size_t length, const double * point, const double * objective)
 {
-    auto temporary =create(length);
+    auto temporary = math::allocate<double>(length);
     math::copy(length, point, 1, temporary.get(), 1);
 
     double fraction = -math::dot(length, point, 1, objective, 1) / math::dot(length, point, 1, point, 1);
-    math::xpby(length, objective, 1, fraction, temporary.get(), 1);
+    math::axpby(length, 1.0, objective, 1, fraction, temporary.get(), 1);
     return std::sqrt(math::dot(length, temporary.get(), 1, temporary.get(), 1));
 }
 
@@ -213,13 +213,13 @@ double* ideal(double* point, size_t scale, size_t dimension, const std::list<Ind
 
 double* interception(double* values, const double * ideal, size_t scale, size_t dimension, const std::list<Individual*>& individuals)
 {
-    auto cost = create(dimension), max = create(dimension),  matrix = create(dimension * dimension);
+    auto cost = math::allocate<double>(dimension), max = math::allocate<double>(dimension),  matrix = math::allocate<double>(dimension * dimension);
 
     std::vector<std::pair<double, double*>> nearest(dimension, { std::nan("0"), nullptr});
 
     for (auto& individual : individuals)
     {
-        math::sub(dimension, individual->objectives, ideal, cost.get());
+        math::sub(dimension, individual->objectives, 1, ideal, 1, cost.get(), 1);
 
         for (size_t axis = 0;  axis < dimension; ++axis)
         {
@@ -253,8 +253,8 @@ double* interception(double* values, const double * ideal, size_t scale, size_t 
 
 double* normalize(size_t dimension, double* objectives, const double* ideal, const double* interception)
 {
-    math::sub(dimension, objectives, ideal, objectives);
-    math::div(dimension, objectives, interception, objectives);
+    math::sub(dimension, objectives, 1, ideal, 1, objectives, 1);
+    math::div(dimension, objectives, 1, interception, 1, objectives, 1);
     return objectives;
 }
 
@@ -262,8 +262,8 @@ double* normalize(size_t dimension, double* objectives, const double* ideal, con
 void attach(size_t dimension, Individual* individual, const double *cost, Association &associations)
 {
     auto compare = [dimension, individual, cost](
-        const std::tuple<Pointer, size_t, std::list<Individual*>>& lhs,
-        const std::tuple<Pointer, size_t, std::list<Individual*>>& rhs)
+        const std::tuple<math::pointer<double>, size_t, std::list<Individual*>>& lhs,
+        const std::tuple<math::pointer<double>, size_t, std::list<Individual*>>& rhs)
         {
             return distance(dimension, std::get<0>(lhs).get(), cost) < distance(dimension, std::get<0>(rhs).get(), cost);
         };
@@ -275,8 +275,8 @@ void attach(size_t dimension, Individual* individual, const double *cost, Associ
 void associate(size_t dimension, Individual* individual, const double *cost, Association &associations)
 {
     auto compare = [dimension, individual, cost](
-        const std::tuple<Pointer, size_t, std::list<Individual*>> &lhs,
-        const std::tuple<Pointer, size_t, std::list<Individual*>>& rhs)
+        const std::tuple<math::pointer<double>, size_t, std::list<Individual*>> &lhs,
+        const std::tuple<math::pointer<double>, size_t, std::list<Individual*>>& rhs)
         {
             return distance(dimension, std::get<0>(lhs).get(), cost) < distance(dimension, std::get<0>(rhs).get(), cost);
         };
@@ -290,7 +290,7 @@ void Reference::dispense(size_t needed, std::list<Individual*>& elites, std::lis
     ideal(ideal_.get(), scale_, dimension_, elites);
     interception(interception_.get(), ideal_.get(), scale_, dimension_, elites);
 
-    auto cost = create(dimension_);
+    auto cost = math::allocate<double>(dimension_);
 
     for (const auto& elite : elites)
     {
@@ -401,13 +401,13 @@ Reference::Reference(const math::Optimizor::Configuration& configuration) :
     dimension_(std::get<size_t>(configuration["dimension"])),
     constraint_(std::get<size_t>(configuration["constraint"])),
     selection_(std::get<size_t>(configuration["population"]) / 2),
-    ideal_(create(dimension_)), interception_(create(dimension_))
+    ideal_(math::allocate<double>(dimension_)), interception_(math::allocate<double>(dimension_))
 {
     size_t division = std::get<size_t>(configuration["division"]);
 
     for (const auto& point : permutation(dimension_, division))
     {
-        associations_.push_back(std::make_tuple<Pointer, size_t, std::list<Individual*>>(create(dimension_),  0, {}));
+        associations_.push_back(std::make_tuple<math::pointer<double>, size_t, std::list<Individual*>>(math::allocate<double>(dimension_),  0, {}));
         auto& [pointer, count, list] = *associations_.rbegin();
 
         std::copy(point.begin(), point.end(), pointer.get());

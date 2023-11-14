@@ -53,9 +53,12 @@ namespace Evolutionary
     {
     protected:
         virtual void evolve(size_t generation) = 0;
-        virtual void write(const char*) = 0;
+
         virtual Optimizor::Result& optimize(Optimizor::Configuration& configuration) = 0;
 
+        virtual void write(const char*, char mode) = 0;
+        virtual std::list<std::shared_ptr<const double[]>> results() = 0;
+       
     public:
         virtual ~Evolutionary() {}
     };

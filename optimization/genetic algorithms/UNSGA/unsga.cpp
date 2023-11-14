@@ -5,11 +5,6 @@ extern "C" __declspec(dllexport) void* __cdecl construct()
 	return new UNSGA();
 }
 
-Pointer create(size_t length)
-{
-    return Pointer(math::allocate<double>(length), math::free<double>);
-}
-
 void UNSGA::evolve(size_t generation)
 {
 	auto& individuals = population_->individuals;
@@ -23,7 +18,7 @@ void UNSGA::evolve(size_t generation)
     }
 }
 
-void UNSGA::write(const char * filepath)
+void UNSGA::write(const char * filepath, char mode)
 {
 	std::ofstream file(filepath);
 	
@@ -54,6 +49,42 @@ void UNSGA::write(const char * filepath)
 
 	file.close();
 }
+
+std::list<std::shared_ptr<const double[]>> UNSGA::results()
+{
+	elites_.clear();
+
+	auto& individuals = population_->individuals;
+	auto& selector = population_->selector();
+
+	auto&& layers = selector.sort(individuals);
+
+	for (auto& individual : *layers.begin())
+	{
+		elites_.emplace_back(std::shared_ptr<const double[]>(individual->decisions, [](void*) {}));
+	}
+
+
+	std::ofstream file("results.txt");
+	for (auto& layer : layers)
+	{
+		file << "layer" << "\t" << std::endl;
+		file << "==============" << std::endl;
+
+		for (auto& individual : layer)
+		{
+			for (size_t i = 0; i < 2; ++i)
+			{
+				file << "\t" << std::to_string(individual->objectives[i]) << "\t";
+			}
+
+			file << individual->voilations[0] << std::endl;
+		}
+	}
+
+	return elites_;
+}
+
 
 math::Optimizor::Result& UNSGA::optimize(math::Optimizor::Configuration& configuration)
 {

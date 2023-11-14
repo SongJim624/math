@@ -2,11 +2,11 @@
 
 void generate(size_t scale, double *decisions, double *upper, double *lower, double *integer)
 {
-    auto temporary = create(scale);
+    auto temporary = math::allocate<double>(scale);
 
-    math::sub(scale, upper, lower, temporary.get());
-    math::mul(scale, temporary.get(), decisions, decisions);
-    math::add(scale, decisions, &lower[0], decisions);
+    math::sub(scale, upper, 1, lower, 1, temporary.get(), 1);
+    math::mul(scale, temporary.get(), 1, decisions, 1, decisions, 1);
+    math::add(scale, decisions, 1, lower, 1, decisions, 1);
 
     for (size_t i = 0; i < scale; ++i)
     {

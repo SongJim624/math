@@ -52,7 +52,7 @@ int main()
 
 	std::unique_ptr<math::Optimizor> optimizer = std::make_unique<UNSGA>();
 	auto& results = optimizer->optimize(*config);
-	results.write("results.txt");
+	results.write("results.txt", 0);
 	std::cout << "hello" << std::endl;
 	return 0;
 };

@@ -29,8 +29,9 @@ namespace math
 	class Optimizor::Result
 	{
 	public:
-		virtual void write(const char* path) = 0;
-		virtual std::list<const double*> results() const = 0;
+		virtual void write(const char* path, char mode) = 0;
+		virtual std::list<std::shared_ptr<const double[]>> results() = 0;
+
 		virtual ~Result() {};
 	};
 

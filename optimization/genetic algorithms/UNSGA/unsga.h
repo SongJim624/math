@@ -16,18 +16,15 @@
 #include <utility>
 #include <ranges>
 
-#include "../../../basic/math.h"
+#include "../../../math library.h"
 #include "../evolutionary.h"
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_
 #define _MATH_OPTIMIZATION_UNSGA_
-using Pointer = std::unique_ptr<double[], decltype(&math::free<double>)>;
-Pointer create(size_t length);
-
 class Individual
 {
 private:
-	Pointer data_;
+	math::pointer<double> data_;
 
 public:
 	double *decisions, *objectives, *voilations;
@@ -40,10 +37,10 @@ class Reference : public Evolutionary::Selector<Individual>
 {
 private:
 	size_t dimension_, scale_, constraint_, selection_;
-	Pointer ideal_, interception_;
+	math::pointer<double> ideal_, interception_;
 
 //	simplified reference plain
-	std::list<std::tuple<Pointer, size_t, std::list<Individual*>>> associations_;
+	std::list<std::tuple<math::pointer<double>, size_t, std::list<Individual*>>> associations_;
 
 private:
 	void dispense(size_t needed, std::list<Individual*>& elites, std::list<Individual*>& cirticals);
@@ -61,7 +58,7 @@ class Reproducor : public Evolutionary::Reproducor<Individual>
 private:
 	size_t scale_, dimension_;
 	double cross_, mutation_, threshold_;
-	Pointer upper_, lower_, integer_;
+	math::pointer<double> upper_, lower_, integer_;
 	math::Optimizor::Objective *function_;
 
 private:
@@ -104,9 +101,12 @@ class UNSGA : public Evolutionary::Evolutionary
 {
 private:
 	std::unique_ptr<Population> population_;
+	std::list<std::shared_ptr<const double[]>> elites_;
 
 protected:
-	virtual void write(const char * filepath);
+	virtual void write(const char * filepath, char mode);
+	virtual std::list<std::shared_ptr<const double[]>> results();
+
 	virtual void evolve(size_t generation);
 	virtual math::Optimizor::Result& optimize(math::Optimizor::Configuration& configuration);
 
