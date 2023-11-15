@@ -114,5 +114,11 @@ public:
 	virtual ~UNSGA() {}
 };
 
-extern "C" __declspec(dllexport) void* __cdecl construct();
+#ifdef __WIN32__
+	#define EXPORT __declspec(dllexport)
+#else
+	#define EXPORT __attribute__((visibility("default")))
+#endif
+
+extern "C" EXPORT void* __cdecl create();
 #endif //!_MATH_OPTIMIZATION_UNSGA_
