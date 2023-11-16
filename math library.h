@@ -398,9 +398,28 @@ namespace math
     {}
 #endif
 }
-
-namespace
-
-
 */
+
+//  distributions, keep consistant with standard library
+namespace math::distribution
+{
+    template<typename T>
+    class real
+    {
+    };
+
+    template<typename T>
+    class exponential
+    {
+    };
+
+    template<typename T>
+    class normal
+    {};
+
+    template<typename T>
+    class lognormal
+    {
+    };
+}
 #endif //! _MATH_BLAS_
