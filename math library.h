@@ -58,13 +58,13 @@ namespace math
 
 #ifdef  __INTEL_MKL__
     template<>
-    void copy(size_t size, const double* source, size_t sinc, double* destination, size_t dinc)
+    inline void copy(size_t size, const double* source, size_t sinc, double* destination, size_t dinc)
     {
         cblas_dcopy(size, source, sinc, destination, dinc);
     }
 
     template<>
-    void copy(size_t size, const float* source, size_t sinc, float* destination, size_t dinc)
+    inline void copy(size_t size, const float* source, size_t sinc, float* destination, size_t dinc)
     {
         cblas_scopy(size, source, sinc, destination, dinc);
     }
@@ -82,13 +82,13 @@ namespace math
 
 #ifdef __INTEL_MKL__
     template<>
-    void add(size_t size, const double* lhs, size_t linc, const double* rhs, size_t rinc, double* res, size_t inc)
+    inline void add(size_t size, const double* lhs, size_t linc, const double* rhs, size_t rinc, double* res, size_t inc)
     {
         vdAddI(size, lhs, linc, rhs, rinc, res, inc);
     }
 
     template<>
-    void add(size_t size, const float* lhs, size_t linc, const float* rhs, size_t rinc, float* res, size_t inc)
+    inline void add(size_t size, const float* lhs, size_t linc, const float* rhs, size_t rinc, float* res, size_t inc)
     {
         vsAddI(size, lhs, linc, rhs, rinc, res, inc);
     }
@@ -119,13 +119,13 @@ namespace math
 
 #ifdef __INTEL_MKL__
     template<>
-    void sub(size_t size, const double* lhs, size_t linc, const double* rhs, size_t rinc, double* res, size_t inc)
+    inline void sub(size_t size, const double* lhs, size_t linc, const double* rhs, size_t rinc, double* res, size_t inc)
     {
         vdSubI(size, lhs, linc, rhs, rinc, res, inc);
     }
 
     template<>
-    void sub(size_t size, const float* lhs, size_t linc, const float* rhs, size_t rinc, float* res, size_t inc)
+    inline void sub(size_t size, const float* lhs, size_t linc, const float* rhs, size_t rinc, float* res, size_t inc)
     {
         vsSubI(size, lhs, linc, rhs, rinc, res, inc);
     }
@@ -155,13 +155,13 @@ namespace math
 
 #ifdef __INTEL_MKL__
     template<>
-    void mul(size_t size, const double* lhs, size_t linc, const double* rhs, size_t rinc, double* res, size_t inc)
+    inline void mul(size_t size, const double* lhs, size_t linc, const double* rhs, size_t rinc, double* res, size_t inc)
     {
         vdMulI(size, lhs, linc, rhs, rinc, res, inc);
     }
 
     template<>
-    void mul(size_t size, const float* lhs, size_t linc, const float* rhs, size_t rinc, float* res, size_t inc)
+    inline void mul(size_t size, const float* lhs, size_t linc, const float* rhs, size_t rinc, float* res, size_t inc)
     {
         vsMulI(size, lhs, linc, rhs, rinc, res, inc);
     }
@@ -191,13 +191,13 @@ namespace math
 
 #ifdef __INTEL_MKL__
     template<>
-    void div(size_t size, const double* lhs, size_t linc, const double* rhs, size_t rinc, double* res, size_t inc)
+    inline void div(size_t size, const double* lhs, size_t linc, const double* rhs, size_t rinc, double* res, size_t inc)
     {
         vdDivI(size, lhs, linc, rhs, rinc, res, inc);
     }
 
     template<>
-    void div(size_t size, const float* lhs, size_t linc, const float* rhs, size_t rinc, float* res, size_t inc)
+    inline void div(size_t size, const float* lhs, size_t linc, const float* rhs, size_t rinc, float* res, size_t inc)
     {
         vsDivI(size, lhs, linc, rhs, rinc, res, inc);
     }
@@ -227,13 +227,13 @@ namespace math
 
 #ifdef __INTEL_MKL__
     template<>
-    void pow(size_t size, const double* lhs, size_t linc, const double* rhs, size_t rinc, double* res, size_t inc)
+    inline void pow(size_t size, const double* lhs, size_t linc, const double* rhs, size_t rinc, double* res, size_t inc)
     {
         vdPowI(size, lhs, linc, rhs, rinc, res, inc);
     }
 
     template<>
-    void pow(size_t size, const float* lhs, size_t linc, const float* rhs, size_t rinc, float* res, size_t inc)
+    inline void pow(size_t size, const float* lhs, size_t linc, const float* rhs, size_t rinc, float* res, size_t inc)
     {
         vsPowI(size, lhs, linc, rhs, rinc, res, inc);
     }
@@ -263,13 +263,13 @@ namespace math
 
 #ifdef __INTEL_MKL__
     template<>
-    void exp(size_t size, const double* operand, size_t oinc, double* res, size_t inc)
+    inline void exp(size_t size, const double* operand, size_t oinc, double* res, size_t inc)
     {
         vdExpI(size, operand, oinc, res, inc);
     }
 
     template<>
-    void exp(size_t size, const float* operand, size_t oinc, float* res, size_t inc)
+    inline void exp(size_t size, const float* operand, size_t oinc, float* res, size_t inc)
     {
         vsExpI(size, operand, oinc, res, inc);
     }
@@ -286,13 +286,13 @@ namespace math
 
 #ifdef __INTEL_MKL__
     template<>
-    void scal(size_t size, double factor, double* operand, size_t inc)
+    inline void scal(size_t size, double factor, double* operand, size_t inc)
     {
         cblas_dscal(size, factor, operand, inc);
     }
 
     template<>
-    void scal(size_t size, float factor, float* operand, size_t inc)
+    inline void scal(size_t size, float factor, float* operand, size_t inc)
     {
         cblas_sscal(size, factor, operand, inc);
     }
@@ -309,13 +309,13 @@ namespace math
 
 #ifdef __INTEL_MKL__
     template<>
-    void axpy(size_t size, double factor, const double* lhs, size_t linc, double* rhs, size_t rinc)
+    inline void axpy(size_t size, double factor, const double* lhs, size_t linc, double* rhs, size_t rinc)
     {
         cblas_daxpy(size, factor, lhs, linc, rhs, rinc);
     }
 
     template<>
-    void axpy(size_t size, float factor, const float* lhs, size_t linc, float* rhs, size_t rinc)
+    inline void axpy(size_t size, float factor, const float* lhs, size_t linc, float* rhs, size_t rinc)
     {
         cblas_saxpy(size, factor, lhs, linc, rhs, rinc);
     }
@@ -332,13 +332,13 @@ namespace math
 
 #ifdef __INTEL_MKL__
     template<>
-    void axpby(size_t size, double alpha, const double* lhs, size_t linc, double beta, double* rhs, size_t rinc)
+    inline void axpby(size_t size, double alpha, const double* lhs, size_t linc, double beta, double* rhs, size_t rinc)
     {
         cblas_daxpby(size, alpha, lhs, linc, beta, rhs, rinc);
     }
 
     template<>
-    void axpby(size_t size, float alpha, const float* lhs, size_t linc, float beta, float* rhs, size_t rinc)
+    inline void axpby(size_t size, float alpha, const float* lhs, size_t linc, float beta, float* rhs, size_t rinc)
     {
         cblas_saxpby(size, alpha, lhs, linc, beta, rhs, rinc);
     }
@@ -362,13 +362,13 @@ namespace math
 
 #ifdef __INTEL_MKL__
     template<>
-    double dot(size_t length, const double* lhs, size_t linc, const double* rhs, size_t rinc)
+    inline double dot(size_t length, const double* lhs, size_t linc, const double* rhs, size_t rinc)
     {
         return cblas_ddot(length, lhs, linc, rhs, rinc);
     }
 
     template<>
-    float dot(size_t length, const float* lhs, size_t linc, const float* rhs, size_t rinc)
+    inline float dot(size_t length, const float* lhs, size_t linc, const float* rhs, size_t rinc)
     {
         return cblas_sdot(length, lhs, linc, rhs, rinc);
     }
@@ -404,8 +404,10 @@ namespace math
 namespace math::distribution
 {
     template<typename T>
-    class real
+    class uniform
     {
+    public:
+        uniform(T left, T right);
     };
 
     template<typename T>
