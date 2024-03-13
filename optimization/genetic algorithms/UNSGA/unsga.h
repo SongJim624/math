@@ -16,7 +16,7 @@
 #include <utility>
 #include <ranges>
 
-#include "../../../math library.h"
+#include "../../../math.h"
 #include "../evolutionary.h"
 
 #ifndef _MATH_OPTIMIZATION_UNSGA_
