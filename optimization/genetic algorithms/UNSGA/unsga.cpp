@@ -1,6 +1,6 @@
 #include "unsga.h"
 
-extern "C" __declspec(dllexport) void* __cdecl construct()
+extern "C" EXPORT void* create()
 {
 	return new UNSGA();
 }
@@ -21,7 +21,7 @@ void UNSGA::evolve(size_t generation)
 void UNSGA::write(const char * filepath, char mode)
 {
 	std::ofstream file(filepath);
-	
+
 	auto& individuals = population_->individuals;
 	auto& selector = population_->selector();
 
