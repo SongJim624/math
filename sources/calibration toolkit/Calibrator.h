@@ -1,6 +1,6 @@
 #include <map>
 #include <string>
-#include "Distribution.h"
+#include "distribution.h"
 
 class Calibrator
 {
